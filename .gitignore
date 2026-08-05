@@ -1,0 +1,21 @@
+# Credenciales y configuración local — nunca se sube
+.env
+
+# Catálogo real de productos (usa catalogo-data-base/catalog.example.json como referencia)
+catalogo-data-base/*
+!catalogo-data-base/.gitkeep
+!catalogo-data-base/catalog.example.json
+
+# Menús y reportes reales de clientes — información comercial privada
+menus/*
+!menus/.gitkeep
+data-json/*
+!data-json/.gitkeep
+reports/*
+!reports/.gitkeep
+reportsDocx/*
+!reportsDocx/.gitkeep
+
+# Memoria acumulada de Engram (conocimiento comercial, no código)
+*.db
+.engram/

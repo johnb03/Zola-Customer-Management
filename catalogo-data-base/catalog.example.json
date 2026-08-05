@@ -1,0 +1,29 @@
+{
+  "catalogo": "Ejemplo 2025",
+  "categorias": {
+    "ACEITES": [
+      {
+        "nombre": "Aceite de oliva extra virgen",
+        "codigo_referencia": "4047",
+        "codigo_barras": "1234567890123",
+        "empaque": "12/500 ml"
+      }
+    ],
+    "SALSAS": [
+      {
+        "nombre": "Salsa Tradicional",
+        "codigo_referencia": "2051144",
+        "codigo_barras": "",
+        "empaque": "28/300 gr"
+      }
+    ],
+    "PASTAS": [
+      {
+        "nombre": "Spaghetti",
+        "codigo_referencia": "2050571",
+        "codigo_barras": "",
+        "empaque": "20/500 gr"
+      }
+    ]
+  }
+}
