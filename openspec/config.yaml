@@ -1,0 +1,45 @@
+# openspec/config.yaml — SDD configuration for ClienteListo
+schema: spec-driven
+
+context: |
+  Tech stack: Bash scripts (scripts/install.sh, extract-text.sh, run-analysis.sh,
+  convert-report.sh) + JSON data (catalogo-data-base/, data-json/). Runtime deps:
+  pdftotext, Tesseract OCR (tessdata/spa.traineddata), Pandoc (templates/reference.docx).
+  Agent flow: opencode-driven per AGENTS.md, with Engram MCP persistent memory.
+  Architecture: sales-strategy pipeline. menus/ (private) -> extract-text.sh ->
+  data-json/ -> LLM analysis -> reports/ (.md) -> convert-report.sh -> reportsDocx/ (.docx).
+  Catalog matching against catalogo-data-base/ (real catalog is gitignored; catalog.example.json
+  is the reference shape). corrections.md holds mandatory always-on rules (Spanish project artifacts).
+  Testing: no test runner, no CI, no linter. Strict TDD: false. Verification via bash -n and manual review.
+  Style: Bash with set -e; report artifacts in Spanish, code/identifiers in English.
+
+testing:
+  strict_tdd: false
+  runner: none
+  reason: "No package.json, go.mod, pyproject.toml, Makefile, or CI config found — shell + JSON only, so no automated test runner exists. Unit/Integration/E2E layers are unavailable. Use `bash -n` syntax checks and manual/report-based verification instead."
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Do not expose gitignored commercial data (.env values, real catalog contents, client names, restaurant menus, generated reports) in any artifact
+    - corrections.md is mandatory per-run context for analysis changes (Spanish project convention)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns (Bash with set -e, JSON data files)
+    tdd: false
+    test_command: "bash -n scripts/*.sh"
+  verify:
+    test_command: "bash -n scripts/*.sh"
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
