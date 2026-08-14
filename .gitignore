@@ -16,6 +16,12 @@ reports/*
 reportsDocx/*
 !reportsDocx/.gitkeep
 
+# Datos de los Módulos 2 y 3 (visitas, exports) — información comercial privada
+visitas/*
+!visitas/.gitkeep
+exports/*
+!exports/.gitkeep
+
 # Memoria acumulada de Engram (conocimiento comercial, no código)
 *.db
 .engram/
