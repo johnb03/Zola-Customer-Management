@@ -8,6 +8,8 @@
 #   4. Conversión del fixture de reporte a .docx con convert-report.sh.
 #   5. Validez del .docx generado (zip + XML bien formado + inyección de
 #      espaciado w:after="160", exactamente 3).
+#   6. Reglas de correcciones sobre el fixture: validate-report.sh debe
+#      terminar con código 0 (sin violaciones).
 #
 # No toca menus/, data-json/, reports/, reportsDocx/ ni catalogo-data-base/:
 # todo el IO ocurre dentro del sandbox .smoke-test.* del repo, que se elimina
@@ -191,11 +193,16 @@ print('docx válido; w:after="160" x3')
 PYEOF
 }
 
+step6_checker() {
+  "$SANDBOX/scripts/validate-report.sh" reports/fixture-report.md
+}
+
 step "1: sintaxis de scripts y preparación del sandbox" prepare_sandbox
 step "2: extracción de texto de un PDF con capa de texto (pdftotext)" step2_pdf
 step "3: extracción de texto de una imagen PNG (tesseract)" step3_png
 step "4: conversión del fixture de reporte a docx" step4_docx
 step "5: validación del docx generado" step5_validate
+step "6: reglas de correcciones sobre el fixture (validate-report.sh)" step6_checker
 
 echo ""
 echo "[OK] Smoke test del pipeline completado"

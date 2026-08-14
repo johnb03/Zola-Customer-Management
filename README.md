@@ -63,7 +63,8 @@ cp ~/Descargas/menu-restaurante.jpg menus/imagen-menu.jpg
 ## Verificación
 
 Para comprobar que el pipeline no se rompió (extracción de texto, conversión a
-Word y sintaxis de los scripts), corre el smoke test:
+Word, sintaxis de los scripts y reglas de correcciones sobre el fixture), corre
+el smoke test:
 
 ```bash
 ./scripts/smoke-test.sh
@@ -73,6 +74,24 @@ Corre dentro de un sandbox temporal en el repo (`.smoke-test.*`, ignorado por
 git) que se elimina solo al terminar, incluso si falla. No toca `menus/`,
 `data-json/`, `reports/`, `reportsDocx/` ni `catalogo-data-base/`. Termina con
 código 0 si todo pasa y con código distinto de 0 si alguna verificación falla.
+
+### Validación de un reporte (bajo demanda)
+
+Antes de entregar un reporte, puedes verificar las reglas mecánicas de
+`corrections.md` (negritas, línea en blanco entre entradas, pitch de 5 líneas,
+términos de costo prohibidos y marcas explícito/inferido):
+
+```bash
+./scripts/validate-report.sh reports/AAAA-MM-DD_nombre.md
+```
+
+- Código 0: el reporte cumple las reglas (no imprime nada).
+- Código 1: hay violaciones; imprime solo el id de regla y el número de línea
+  (ej. `BOLD 12`, `SPACING 10,12`, `BAN 5`), nunca contenido del reporte.
+- Código 2: uso incorrecto o archivo ilegible.
+
+Es una verificación opcional y bajo demanda: no bloquea el flujo normal, y el
+smoke test también la ejecuta sobre el fixture para evitar regresiones.
 
 ## Estructura del proyecto
 
@@ -96,6 +115,7 @@ código 0 si todo pasa y con código distinto de 0 si alguna verificación falla
     ├── install.sh
     ├── run-analysis.sh
     ├── convert-report.sh
+    ├── validate-report.sh  # valida reglas de correcciones de un reporte (bajo demanda)
     └── smoke-test.sh      # smoke test del pipeline (corre en sandbox)
 ```
 
