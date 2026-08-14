@@ -94,8 +94,7 @@ interno que luego usa esa información para la conversación comercial.
    ```
    Si existe `templates/reference.docx`, úsalo para aplicar el estilo
    definido ahí: agrega `--reference-doc=templates/reference.docx` al
-   comando. La subida a Drive no la haces tú — el usuario se encarga de eso
-   manualmente una vez el `.docx` está en `reportsDocx/`.
+   comando. El `.docx` final queda en `reportsDocx/`, listo para entregar.
 
 7. **Cerrar la sesión.** Si en la conversación el usuario dio correcciones
    sobre el matching, la estrategia o el formato, guárdalas con `mem_save`

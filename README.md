@@ -2,7 +2,7 @@
 
 Herramienta para vendedores que elimina la fricción de venta de tu catálogo para cualquier restaurante. Tomas una imagen o un PDF del menú de un restaurante, subes tu base de datos de productos, y el agente se encarga del resto: identifica los platos, obtiene los ingredientes de cada uno, los compara contra los productos de tu catálogo y genera un documento Word fácil de leer y organizado, listo para venderle productos específicos de tu catálogo al cliente.
 
-Todo corre local y con herramientas gratuitas. Cada quien conecta su propia API, su propia cuenta de Google Drive, y su propio catálogo — nada de eso viene incluido en este repo.
+Todo corre local y con herramientas gratuitas. Cada quien conecta su propia API y su propio catálogo — nada de eso viene incluido en este repo.
 
 ## ¿Cómo funciona?
 
@@ -25,8 +25,6 @@ Todo corre local y con herramientas gratuitas. Cada quien conecta su propia API,
   memoria persistente, para que el agente aprenda patrones entre reportes.
 - [Pandoc](https://pandoc.org/installing.html) — para convertir el reporte a
   Word (.docx).
-- [rclone](https://rclone.org/install/) — para subir el reporte a Google Drive
-  (opcional, solo si quieres la subida automática).
 
 ## Instalación
 
@@ -47,8 +45,6 @@ Luego:
 3. Configura opencode con tu proveedor de IA (`opencode auth login` o variables
    de entorno según el proveedor que elijas).
 4. Configura Engram como servidor MCP en opencode (ver su documentación).
-5. Si vas a usar subida automática a Drive: `rclone config` una vez, con el
-   mismo nombre de remote que pusiste en `RCLONE_REMOTE_NAME` (.env).
 
 ## Uso
 
@@ -62,8 +58,6 @@ cp ~/Descargas/menu-restaurante.jpg menus/imagen-menu.jpg
 
 # 3. Convierte el reporte a Word (se guarda en reportsDocx/)
 ./scripts/convert-report.sh reports/AAAA-MM-DD_imagen-menu.md
-
-# 4. Sube reportsDocx/AAAA-MM-DD_imagen-menu.docx a Drive manualmente
 ```
 
 ## Estructura del proyecto
