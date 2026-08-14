@@ -36,9 +36,9 @@ rules:
     guidelines:
       - Follow existing code patterns (Bash with set -e, JSON data files)
     tdd: false
-    test_command: "bash -n scripts/*.sh"
+    test_command: "scripts/smoke-test.sh"
   verify:
-    test_command: "bash -n scripts/*.sh"
+    test_command: "scripts/smoke-test.sh"
     build_command: ""
     coverage_threshold: 0
   archive:

@@ -19,3 +19,6 @@ reportsDocx/*
 # Memoria acumulada de Engram (conocimiento comercial, no código)
 *.db
 .engram/
+
+# Sandboxes temporales del smoke test (guardia ante crashes)
+/.smoke-test.*/

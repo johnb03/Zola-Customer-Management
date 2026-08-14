@@ -60,6 +60,20 @@ cp ~/Descargas/menu-restaurante.jpg menus/imagen-menu.jpg
 ./scripts/convert-report.sh reports/AAAA-MM-DD_imagen-menu.md
 ```
 
+## Verificación
+
+Para comprobar que el pipeline no se rompió (extracción de texto, conversión a
+Word y sintaxis de los scripts), corre el smoke test:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+Corre dentro de un sandbox temporal en el repo (`.smoke-test.*`, ignorado por
+git) que se elimina solo al terminar, incluso si falla. No toca `menus/`,
+`data-json/`, `reports/`, `reportsDocx/` ni `catalogo-data-base/`. Termina con
+código 0 si todo pasa y con código distinto de 0 si alguna verificación falla.
+
 ## Estructura del proyecto
 
 ```
@@ -75,10 +89,14 @@ cp ~/Descargas/menu-restaurante.jpg menus/imagen-menu.jpg
 ├── reportsDocx/            # reportes convertidos a .docx (ignorado por git)
 ├── templates/
 │   └── reference.docx     # (opcional) estilo/logo para los Word generados
+├── test/
+│   └── fixtures/
+│       └── fixture-report.md  # reporte sintético para el smoke test
 └── scripts/
     ├── install.sh
     ├── run-analysis.sh
-    └── convert-report.sh
+    ├── convert-report.sh
+    └── smoke-test.sh      # smoke test del pipeline (corre en sandbox)
 ```
 
 ## Cómo mejora con el uso
