@@ -13,8 +13,6 @@ Last updated: 2026-08-14
 - /home/job/.codex/skills
 - /home/job/.kiro/skills
 
-Project skill dirs (`skills/`, `.opencode/skills/`, `.claude/skills/`, `.atl/skills/`, …): none found in ClienteListo.
-
 ## Contract
 
 **Delegator use only.** This registry is an index, not a summary. Any agent that launches subagents reads it to select relevant skills, then passes exact `SKILL.md` paths for the subagent to read before work.
@@ -50,7 +48,6 @@ Project skill dirs (`skills/`, `.opencode/skills/`, `.claude/skills/`, `.atl/ski
 | `issue-creation` | Create Gentle AI issues with issue-first checks. Trigger: creating GitHub issues, bug reports, or feature requests. | user | `/home/job/.config/opencode/skills/issue-creation/SKILL.md` |
 | `judgment-day` | Trigger: judgment day, dual review, adversarial review, juzgar. Run explicit blind dual review with at most two scoped fix/re-judgment rounds. | user | `/home/job/.config/opencode/skills/judgment-day/SKILL.md` |
 | `omarchy` | REQUIRED for end-user customization of Linux desktop, window manager, or system config. Use when editing ~/.config/hypr/, ~/.config/waybar/, ~/.config/walker/, ~/.config/alacritty/, ~/.config/foot/, ~/.config/kitty/, ~/.config/ghostty/, ~/.config/mako/, or ~/.config/omarchy/. Triggers: Hyprland, window rules, animations, keybindings, monitors, gaps, borders, blur, opacity, waybar, walker, terminal config, themes, wallpaper, night light, idle, lock screen, screenshots, reminders, layer rules, workspace settings, display config, and user-facing omarchy commands. Excludes Omarchy source development in ~/.local/share/omarchy/ and `omarchy dev` workflows. | user | `/home/job/.pi/agent/skills/omarchy/SKILL.md` |
-| `openpencil-design` | Use when designing UI with OpenPencil — creating layouts via op CLI, batch design DSL, or MCP tools. Covers PenNode schema, semantic roles, typography, color, spacing, and common component patterns. | user | `/home/job/.agents/skills/openpencil-skill/openpencil-design/SKILL.md` |
 | `seo-audit` | When the user wants to audit, review, or diagnose SEO issues on their site. Also use when the user mentions "SEO audit," "technical SEO," "why am I not ranking," "SEO issues," "on-page SEO," "meta tags review," "SEO health check," "my traffic dropped," "lost rankings," "not showing up in Google," "site isn't ranking," "Google update hit me," "page speed," "core web vitals," "crawl errors," or "indexing issues." Use this even if the user just says something vague like "my SEO is bad" or "help with SEO" — start with an audit. For building pages at scale to target keywords, see programmatic-seo. For adding structured data, see schema. For AI search optimization, see ai-seo. | user | `/home/job/.agents/skills/seo-audit/SKILL.md` |
 | `skill-creator` | Trigger: new skills, agent instructions, documenting AI usage patterns. Create LLM-first skills with valid frontmatter. | user | `/home/job/.config/opencode/skills/skill-creator/SKILL.md` |
 | `skill-improver` | Trigger: improve skills, audit skills, refactor skills, skill quality. Audit and upgrade existing LLM-first skills. | user | `/home/job/.config/opencode/skills/skill-improver/SKILL.md` |

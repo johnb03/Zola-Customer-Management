@@ -22,3 +22,5 @@ reportsDocx/*
 
 # Sandboxes temporales del smoke test (guardia ante crashes)
 /.smoke-test.*/
+# Local AI runtime state
+.atl/
