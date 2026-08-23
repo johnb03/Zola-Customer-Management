@@ -45,4 +45,3 @@ entrantes/*
 # Reportes del agente e info comercial del vendedor
 AGENTE_REPORTE.md
 *.xlsx
-design/*.op

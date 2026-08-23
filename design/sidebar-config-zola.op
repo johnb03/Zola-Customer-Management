@@ -1,0 +1,2748 @@
+{
+  "version": "0.8.4",
+  "name": "OpenPencil CLI Session",
+  "pages": [
+    {
+      "id": "n2",
+      "name": "1. Sidebar - Pie",
+      "children": [
+        {
+          "type": "frame",
+          "id": "n8",
+          "name": "Sidebar - Pie con iniciales",
+          "x": 0.0,
+          "y": 0.0,
+          "width": 240.0,
+          "height": 800.0,
+          "layout": "vertical",
+          "fill": [
+            {
+              "type": "solid",
+              "color": "#2A2118"
+            }
+          ],
+          "stroke": {
+            "thickness": 0.5,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "#3A2E22"
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "frame",
+              "id": "n9",
+              "name": "Brand",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "vertical",
+              "gap": 10.0,
+              "padding": [
+                28.0,
+                20.0,
+                20.0,
+                20.0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n187",
+                  "name": "Logo Row",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n188",
+                      "name": "Logo Z",
+                      "width": 28.0,
+                      "height": 28.0,
+                      "layout": "horizontal",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "cornerRadius": 8.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n189",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "Z",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 15.0,
+                          "fontWeight": 900,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#15100D"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n10",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Zola",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 22.0,
+                      "fontWeight": 900,
+                      "letterSpacing": -0.5,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#EDE6D8"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "n11",
+                  "name": "Gold Signature",
+                  "width": 40.0,
+                  "height": 2.0,
+                  "cornerRadius": 1.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#C9A227"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n12",
+              "name": "Nav",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "vertical",
+              "gap": 2.0,
+              "padding": [
+                8.0,
+                12.0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n17",
+                  "name": "Dashboard",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n18",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n19",
+                      "iconFontName": "layout-dashboard",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n20",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Dashboard",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n29",
+                  "name": "Clientes",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n30",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n31",
+                      "iconFontName": "users",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n32",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Clientes",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n21",
+                  "name": "Notas (activo)",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n22",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n23",
+                      "iconFontName": "notebook-pen",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n24",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Notas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 700,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#EDE6D8"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n25",
+                  "name": "Reporte de Visitas",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n26",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n27",
+                      "iconFontName": "clipboard-list",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n28",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Reporte de Visitas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n33",
+                  "name": "Agendar Citas",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n34",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n35",
+                      "iconFontName": "calendar-days",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n36",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Agendar Citas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n37",
+              "name": "Spacer",
+              "width": "fill_container",
+              "height": "fill_container",
+              "children": []
+            },
+            {
+              "type": "rectangle",
+              "id": "n38",
+              "name": "Separator",
+              "width": "fill_container",
+              "height": 1.0,
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#3A2E22"
+                }
+              ],
+              "children": []
+            },
+            {
+              "type": "frame",
+              "id": "n39",
+              "name": "Sidebar Footer",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "horizontal",
+              "gap": 10.0,
+              "padding": [
+                14.0,
+                16.0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n40",
+                  "name": "User",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n41",
+                      "name": "Avatar Iniciales",
+                      "width": 32.0,
+                      "height": 32.0,
+                      "layout": "horizontal",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "clipContent": true,
+                      "cornerRadius": 16.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#1F1811"
+                        }
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n42",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "JB",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 12.0,
+                          "fontWeight": 700,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#C9A227"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n43",
+                      "name": "Name Wrap",
+                      "width": 120.0,
+                      "height": "fit_content",
+                      "layout": "vertical",
+                      "clipContent": true,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n44",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "John Berroa",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 13.0,
+                          "fontWeight": 500,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#EDE6D8"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n45",
+                  "name": "Settings Button",
+                  "width": 32.0,
+                  "height": 32.0,
+                  "layout": "horizontal",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "n46",
+                      "iconFontName": "settings",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "n47",
+          "name": "Sidebar - Pie con imagen",
+          "x": 280.0,
+          "y": 0.0,
+          "width": 240.0,
+          "height": 800.0,
+          "layout": "vertical",
+          "fill": [
+            {
+              "type": "solid",
+              "color": "#2A2118"
+            }
+          ],
+          "stroke": {
+            "thickness": 0.5,
+            "fill": [
+              {
+                "type": "solid",
+                "color": "#3A2E22"
+              }
+            ]
+          },
+          "children": [
+            {
+              "type": "frame",
+              "id": "n48",
+              "name": "Brand",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "vertical",
+              "gap": 10.0,
+              "padding": [
+                28.0,
+                20.0,
+                20.0,
+                20.0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n190",
+                  "name": "Logo Row",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n191",
+                      "name": "Logo Z",
+                      "width": 28.0,
+                      "height": 28.0,
+                      "layout": "horizontal",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "cornerRadius": 8.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n192",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "Z",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 15.0,
+                          "fontWeight": 900,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#15100D"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n49",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Zola",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 22.0,
+                      "fontWeight": 900,
+                      "letterSpacing": -0.5,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#EDE6D8"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "rectangle",
+                  "id": "n50",
+                  "name": "Gold Signature",
+                  "width": 40.0,
+                  "height": 2.0,
+                  "cornerRadius": 1.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#C9A227"
+                    }
+                  ],
+                  "children": []
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n51",
+              "name": "Nav",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "vertical",
+              "gap": 2.0,
+              "padding": [
+                8.0,
+                12.0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n56",
+                  "name": "Dashboard",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n57",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n58",
+                      "iconFontName": "layout-dashboard",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n59",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Dashboard",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n68",
+                  "name": "Clientes",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n69",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n70",
+                      "iconFontName": "users",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n71",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Clientes",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n60",
+                  "name": "Notas (activo)",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n61",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n62",
+                      "iconFontName": "notebook-pen",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n63",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Notas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 700,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#EDE6D8"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n64",
+                  "name": "Reporte de Visitas",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n65",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n66",
+                      "iconFontName": "clipboard-list",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n67",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Reporte de Visitas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n72",
+                  "name": "Agendar Citas",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "padding": [
+                    10.0,
+                    12.0
+                  ],
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "n73",
+                      "width": 3.0,
+                      "height": 18.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#2A2118"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "n74",
+                      "iconFontName": "calendar-days",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "n75",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Agendar Citas",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n76",
+              "name": "Spacer",
+              "width": "fill_container",
+              "height": "fill_container",
+              "children": []
+            },
+            {
+              "type": "rectangle",
+              "id": "n77",
+              "name": "Separator",
+              "width": "fill_container",
+              "height": 1.0,
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#3A2E22"
+                }
+              ],
+              "children": []
+            },
+            {
+              "type": "frame",
+              "id": "n78",
+              "name": "Sidebar Footer",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "horizontal",
+              "gap": 10.0,
+              "padding": [
+                14.0,
+                16.0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n79",
+                  "name": "User",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "gap": 10.0,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n80",
+                      "name": "Avatar Foto",
+                      "width": 32.0,
+                      "height": 32.0,
+                      "layout": "horizontal",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "clipContent": true,
+                      "cornerRadius": 16.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#5C4F3F"
+                        }
+                      ],
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "n86",
+                          "iconFontName": "user",
+                          "width": 16.0,
+                          "height": 16.0,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#9C8B72"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n82",
+                      "name": "Name Wrap",
+                      "width": 120.0,
+                      "height": "fit_content",
+                      "layout": "vertical",
+                      "clipContent": true,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n83",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "John Berroa",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 13.0,
+                          "fontWeight": 500,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#EDE6D8"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n84",
+                  "name": "Settings Button",
+                  "width": 32.0,
+                  "height": 32.0,
+                  "layout": "horizontal",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "n85",
+                      "iconFontName": "settings",
+                      "width": 18.0,
+                      "height": 18.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n4",
+      "name": "2. Config - Datos de Usuario",
+      "children": [
+        {
+          "type": "frame",
+          "id": "n87",
+          "name": "2. Config Panel - Datos de Usuario",
+          "x": 0.0,
+          "y": 0.0,
+          "width": 1200.0,
+          "height": 1600.0,
+          "layout": "horizontal",
+          "clipContent": true,
+          "fill": [
+            {
+              "type": "solid",
+              "color": "#15100D"
+            }
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "n88",
+              "name": "SidebarRef",
+              "width": 240.0,
+              "height": 800.0,
+              "layout": "vertical",
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#15100D"
+                }
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n122",
+                  "name": "Sidebar Contexto",
+                  "width": 240.0,
+                  "height": 800.0,
+                  "layout": "vertical",
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#2A2118"
+                    }
+                  ],
+                  "stroke": {
+                    "thickness": 0.5,
+                    "fill": [
+                      {
+                        "type": "solid",
+                        "color": "#3A2E22"
+                      }
+                    ]
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n123",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "vertical",
+                      "gap": 10.0,
+                      "padding": [
+                        28.0,
+                        20.0,
+                        20.0,
+                        20.0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "n193",
+                          "name": "Logo Row",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "n194",
+                              "name": "Logo Z",
+                              "width": 28.0,
+                              "height": 28.0,
+                              "layout": "horizontal",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "cornerRadius": 8.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "n195",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "content": "Z",
+                                  "fontFamily": "Satoshi",
+                                  "fontSize": 15.0,
+                                  "fontWeight": 900,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#15100D"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n124",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Zola",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 22.0,
+                              "fontWeight": 900,
+                              "letterSpacing": -0.5,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#EDE6D8"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "n125",
+                          "width": 40.0,
+                          "height": 2.0,
+                          "cornerRadius": 1.0,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#C9A227"
+                            }
+                          ],
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n126",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "vertical",
+                      "gap": 2.0,
+                      "padding": [
+                        8.0,
+                        12.0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "n131",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "padding": [
+                            10.0,
+                            12.0
+                          ],
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n132",
+                              "width": 3.0,
+                              "height": 18.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#2A2118"
+                                }
+                              ],
+                              "children": []
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "n133",
+                              "iconFontName": "layout-dashboard",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n134",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Dashboard",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n143",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "padding": [
+                            10.0,
+                            12.0
+                          ],
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n144",
+                              "width": 3.0,
+                              "height": 18.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#2A2118"
+                                }
+                              ],
+                              "children": []
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "n145",
+                              "iconFontName": "users",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n146",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Clientes",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n135",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "padding": [
+                            10.0,
+                            12.0
+                          ],
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n136",
+                              "width": 3.0,
+                              "height": 18.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ],
+                              "children": []
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "n137",
+                              "iconFontName": "notebook-pen",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n138",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Notas",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 700,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#EDE6D8"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n139",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "padding": [
+                            10.0,
+                            12.0
+                          ],
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n140",
+                              "width": 3.0,
+                              "height": 18.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#2A2118"
+                                }
+                              ],
+                              "children": []
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "n141",
+                              "iconFontName": "clipboard-list",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n142",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Reporte de Visitas",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n147",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "padding": [
+                            10.0,
+                            12.0
+                          ],
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "n148",
+                              "width": 3.0,
+                              "height": 18.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#2A2118"
+                                }
+                              ],
+                              "children": []
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "n149",
+                              "iconFontName": "calendar-days",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n150",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Agendar Citas",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n151",
+                      "name": "Spacer",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "children": []
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "n152",
+                      "name": "Separator",
+                      "width": "fill_container",
+                      "height": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#3A2E22"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n153",
+                      "name": "Sidebar Footer",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "horizontal",
+                      "gap": 10.0,
+                      "padding": [
+                        14.0,
+                        16.0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "n154",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "gap": 10.0,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "n155",
+                              "width": 32.0,
+                              "height": 32.0,
+                              "layout": "horizontal",
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "clipContent": true,
+                              "cornerRadius": 16.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#1F1811"
+                                }
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "n156",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "content": "JB",
+                                  "fontFamily": "Satoshi",
+                                  "fontSize": 12.0,
+                                  "fontWeight": 700,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#C9A227"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "n157",
+                              "width": 120.0,
+                              "height": "fit_content",
+                              "layout": "vertical",
+                              "clipContent": true,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "n158",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "content": "John Berroa",
+                                  "fontFamily": "Satoshi",
+                                  "fontSize": 13.0,
+                                  "fontWeight": 500,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#EDE6D8"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n159",
+                          "width": 32.0,
+                          "height": 32.0,
+                          "layout": "horizontal",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "n160",
+                              "iconFontName": "settings",
+                              "width": 18.0,
+                              "height": 18.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n89",
+              "name": "Content Area",
+              "width": 960.0,
+              "height": 800.0,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n90",
+                  "name": "Card Hint 1",
+                  "x": 40.0,
+                  "y": 40.0,
+                  "opacity": 0.25,
+                  "width": 280.0,
+                  "height": 160.0,
+                  "cornerRadius": 12.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#1F1811"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "type": "frame",
+                  "id": "n91",
+                  "name": "Card Hint 2",
+                  "x": 360.0,
+                  "y": 40.0,
+                  "opacity": 0.25,
+                  "width": 280.0,
+                  "height": 160.0,
+                  "cornerRadius": 12.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#1F1811"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "type": "frame",
+                  "id": "n92",
+                  "name": "Card Hint 3",
+                  "x": 680.0,
+                  "y": 220.0,
+                  "opacity": 0.25,
+                  "width": 280.0,
+                  "height": 160.0,
+                  "cornerRadius": 12.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#1F1811"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "type": "frame",
+                  "id": "n93",
+                  "name": "Dim Overlay",
+                  "x": 0.0,
+                  "y": 0.0,
+                  "width": 960.0,
+                  "height": 800.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "rgba(21,16,13,0.72)"
+                    }
+                  ],
+                  "children": []
+                },
+                {
+                  "type": "frame",
+                  "id": "n94",
+                  "name": "Config Panel",
+                  "x": 540.0,
+                  "y": 0.0,
+                  "width": 420.0,
+                  "height": 800.0,
+                  "layout": "vertical",
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#1F1811"
+                    }
+                  ],
+                  "stroke": {
+                    "thickness": 0.5,
+                    "fill": [
+                      {
+                        "type": "solid",
+                        "color": "#3A2E22"
+                      }
+                    ]
+                  },
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n95",
+                      "name": "Panel Header",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "horizontal",
+                      "padding": [
+                        24.0,
+                        24.0,
+                        12.0,
+                        24.0
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n96",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "Configuración",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 18.0,
+                          "fontWeight": 700,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#EDE6D8"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n97",
+                          "name": "Close Button",
+                          "width": 32.0,
+                          "height": 32.0,
+                          "layout": "horizontal",
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "cornerRadius": 8.0,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#2A2118"
+                            }
+                          ],
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "n98",
+                              "iconFontName": "x",
+                              "width": 16.0,
+                              "height": 16.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n99",
+                      "name": "Tabs",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "layout": "horizontal",
+                      "gap": 28.0,
+                      "padding": [
+                        0.0,
+                        24.0
+                      ],
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "n100",
+                          "name": "Tab Datos",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "gap": 8.0,
+                          "padding": [
+                            10.0,
+                            2.0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "n101",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Datos",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 14.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n102",
+                          "name": "Tab Datos de usuario (activa)",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "gap": 8.0,
+                          "padding": [
+                            10.0,
+                            2.0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "n103",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Datos de usuario",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 14.0,
+                              "fontWeight": 600,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#EDE6D8"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "n104",
+                              "name": "Gold Underline",
+                              "width": "fill_container",
+                              "height": 2.0,
+                              "cornerRadius": 1.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ],
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "n105",
+                      "name": "Tabs Separator",
+                      "width": "fill_container",
+                      "height": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#3A2E22"
+                        }
+                      ],
+                      "children": []
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n106",
+                      "name": "Body",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 28.0,
+                      "padding": [
+                        28.0,
+                        24.0,
+                        24.0,
+                        24.0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "n107",
+                          "name": "Photo Zone",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "gap": 10.0,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "n108",
+                              "name": "Avatar Upload Hover",
+                              "width": 96.0,
+                              "height": 96.0,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "n109",
+                                  "name": "Foto Actual",
+                                  "x": 0.0,
+                                  "y": 0.0,
+                                  "width": 96.0,
+                                  "height": 96.0,
+                                  "layout": "horizontal",
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "clipContent": true,
+                                  "cornerRadius": 48.0,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#5C4F3F"
+                                    }
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "n110",
+                                      "iconFontName": "user",
+                                      "width": 36.0,
+                                      "height": 36.0,
+                                      "fill": [
+                                        {
+                                          "type": "solid",
+                                          "color": "#9C8B72"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "n111",
+                                  "name": "Camera Badge",
+                                  "x": 68.0,
+                                  "y": 68.0,
+                                  "width": 28.0,
+                                  "height": 28.0,
+                                  "layout": "horizontal",
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "cornerRadius": 14.0,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#2A2118"
+                                    }
+                                  ],
+                                  "stroke": {
+                                    "thickness": 1.0,
+                                    "fill": [
+                                      {
+                                        "type": "solid",
+                                        "color": "#C9A227"
+                                      }
+                                    ]
+                                  },
+                                  "children": [
+                                    {
+                                      "type": "icon_font",
+                                      "id": "n112",
+                                      "iconFontName": "camera",
+                                      "width": 13.0,
+                                      "height": 13.0,
+                                      "fill": [
+                                        {
+                                          "type": "solid",
+                                          "color": "#C9A227"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "n113",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Cambiar foto",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 13.0,
+                              "fontWeight": 500,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n114",
+                          "name": "Name Field",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "vertical",
+                          "gap": 6.0,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "n115",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "content": "Nombre",
+                              "fontFamily": "Satoshi",
+                              "fontSize": 12.0,
+                              "fontWeight": 500,
+                              "letterSpacing": 0.3,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#A89A85"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "n116",
+                              "name": "Input",
+                              "width": "fill_container",
+                              "height": "fit_content",
+                              "padding": [
+                                12.0,
+                                14.0
+                              ],
+                              "cornerRadius": 8.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#15100D"
+                                }
+                              ],
+                              "stroke": {
+                                "thickness": 1.0,
+                                "fill": [
+                                  {
+                                    "type": "solid",
+                                    "color": "#3A2E22"
+                                  }
+                                ]
+                              },
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "n117",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "content": "John Berroa",
+                                  "fontFamily": "Satoshi",
+                                  "fontSize": 14.0,
+                                  "fontWeight": 400,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#EDE6D8"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n118",
+                          "name": "Spacer",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "children": []
+                        },
+                        {
+                          "type": "frame",
+                          "id": "n119",
+                          "name": "Actions",
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "layout": "horizontal",
+                          "justifyContent": "end",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "n120",
+                              "name": "Save Button",
+                              "width": "fit_content",
+                              "height": "fit_content",
+                              "layout": "horizontal",
+                              "padding": [
+                                10.0,
+                                28.0
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "cornerRadius": 8.0,
+                              "fill": [
+                                {
+                                  "type": "solid",
+                                  "color": "#C9A227"
+                                }
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "n121",
+                                  "width": "fit_content",
+                                  "height": "fit_content",
+                                  "content": "Guardar",
+                                  "fontFamily": "Satoshi",
+                                  "fontSize": 14.0,
+                                  "fontWeight": 600,
+                                  "fill": [
+                                    {
+                                      "type": "solid",
+                                      "color": "#15100D"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "n6",
+      "name": "3. Mobile Config",
+      "children": [
+        {
+          "type": "frame",
+          "id": "n161",
+          "name": "3. Mobile Config",
+          "x": 0.0,
+          "y": 0.0,
+          "width": 375.0,
+          "height": 812.0,
+          "layout": "vertical",
+          "clipContent": true,
+          "fill": [
+            {
+              "type": "solid",
+              "color": "#15100D"
+            }
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "n162",
+              "name": "Header",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "horizontal",
+              "gap": 12.0,
+              "padding": [
+                20.0,
+                16.0,
+                16.0,
+                16.0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n163",
+                  "name": "Back Button",
+                  "width": 32.0,
+                  "height": 32.0,
+                  "layout": "horizontal",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "n164",
+                      "iconFontName": "arrow-left",
+                      "width": 20.0,
+                      "height": 20.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "n165",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "content": "Configuración",
+                  "fontFamily": "Satoshi",
+                  "fontSize": 17.0,
+                  "fontWeight": 700,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#EDE6D8"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "n166",
+              "name": "Tabs",
+              "width": "fill_container",
+              "height": "fit_content",
+              "layout": "horizontal",
+              "gap": 24.0,
+              "padding": [
+                0.0,
+                16.0
+              ],
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n167",
+                  "name": "Tab Datos",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "vertical",
+                  "gap": 8.0,
+                  "padding": [
+                    10.0,
+                    2.0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n168",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Datos",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 500,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n169",
+                  "name": "Tab Datos de usuario (activa)",
+                  "width": "fit_content",
+                  "height": "fit_content",
+                  "layout": "vertical",
+                  "gap": 8.0,
+                  "padding": [
+                    10.0,
+                    2.0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n170",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Datos de usuario",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 13.0,
+                      "fontWeight": 600,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#EDE6D8"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "n171",
+                      "name": "Gold Underline",
+                      "width": "fill_container",
+                      "height": 2.0,
+                      "cornerRadius": 1.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#C9A227"
+                        }
+                      ],
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "n172",
+              "name": "Tabs Separator",
+              "width": "fill_container",
+              "height": 1.0,
+              "fill": [
+                {
+                  "type": "solid",
+                  "color": "#3A2E22"
+                }
+              ],
+              "children": []
+            },
+            {
+              "type": "frame",
+              "id": "n173",
+              "name": "Body",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 24.0,
+              "padding": [
+                28.0,
+                24.0,
+                24.0,
+                24.0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "n174",
+                  "name": "Photo Zone",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "vertical",
+                  "gap": 12.0,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n175",
+                      "name": "Foto Actual",
+                      "width": 96.0,
+                      "height": 96.0,
+                      "layout": "horizontal",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "clipContent": true,
+                      "cornerRadius": 48.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#5C4F3F"
+                        }
+                      ],
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "n176",
+                          "iconFontName": "user",
+                          "width": 36.0,
+                          "height": 36.0,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#9C8B72"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n177",
+                      "name": "Cambiar Foto Btn",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "layout": "horizontal",
+                      "gap": 6.0,
+                      "padding": [
+                        8.0,
+                        14.0
+                      ],
+                      "alignItems": "center",
+                      "cornerRadius": 8.0,
+                      "stroke": {
+                        "thickness": 1.0,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#C9A227"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "n178",
+                          "iconFontName": "camera",
+                          "width": 14.0,
+                          "height": 14.0,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#C9A227"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "n179",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "Cambiar foto",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 13.0,
+                          "fontWeight": 600,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#C9A227"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n180",
+                  "name": "Name Field",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "vertical",
+                  "gap": 6.0,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n181",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Nombre",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 12.0,
+                      "fontWeight": 500,
+                      "letterSpacing": 0.3,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#A89A85"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n182",
+                      "name": "Input",
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "padding": [
+                        12.0,
+                        14.0
+                      ],
+                      "cornerRadius": 8.0,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#1F1811"
+                        }
+                      ],
+                      "stroke": {
+                        "thickness": 1.0,
+                        "fill": [
+                          {
+                            "type": "solid",
+                            "color": "#3A2E22"
+                          }
+                        ]
+                      },
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "n183",
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "content": "John Berroa",
+                          "fontFamily": "Satoshi",
+                          "fontSize": 14.0,
+                          "fontWeight": 400,
+                          "fill": [
+                            {
+                              "type": "solid",
+                              "color": "#EDE6D8"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "n184",
+                  "name": "Spacer",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "children": []
+                },
+                {
+                  "type": "frame",
+                  "id": "n185",
+                  "name": "Save Button",
+                  "width": "fill_container",
+                  "height": "fit_content",
+                  "layout": "horizontal",
+                  "padding": [
+                    14.0,
+                    0.0
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "cornerRadius": 8.0,
+                  "fill": [
+                    {
+                      "type": "solid",
+                      "color": "#C9A227"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n186",
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "content": "Guardar",
+                      "fontFamily": "Satoshi",
+                      "fontSize": 15.0,
+                      "fontWeight": 600,
+                      "fill": [
+                        {
+                          "type": "solid",
+                          "color": "#15100D"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "children": [],
+  "editorMeta": {
+    "activePageIndex": 2,
+    "preserveAuthoredGeometry": false
+  }
+}
