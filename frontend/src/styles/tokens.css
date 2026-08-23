@@ -1,0 +1,209 @@
+/* Satoshi — font files are local under public/fonts/satoshi/, no CDN. */
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Light.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Light.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Regular.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Regular.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Italic.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Italic.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Medium.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Medium.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Bold.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Bold.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi/WEB/fonts/Satoshi-Black.woff2') format('woff2'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Black.woff') format('woff'),
+       url('/fonts/satoshi/WEB/fonts/Satoshi-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg-base: #15100D;
+  --bg-surface: #1F1811;
+  --bg-elevated: #2A2118;
+  --accent-gold: #C9A227;
+  --accent-wine: #7A1F2B;
+  --text-primary: #EDE6D8;
+  --text-secondary: #A89A85;
+  --border: #3A2E22;
+  --border-strong: #6B5426;
+  --status-success: #6B8F47;
+  --status-warning: #C98A3B;
+  --status-danger: #A8433A;
+
+  --font-display: 'Satoshi', -apple-system, sans-serif;
+  --radius: 12px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.5;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Shared section header with the signature gold line (DESIGN.md "elemento de firma"). */
+
+.section-header {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.section-subtitle {
+  margin: 6px 0 14px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  max-width: 640px;
+}
+
+.firma {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent-gold), rgba(201, 162, 39, 0) 100%);
+  opacity: 0.75;
+}
+
+/* Shared card + button primitives (vanilla CSS, no framework). */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--accent-gold);
+  color: #15100D;
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.btn-success {
+  background: var(--status-success, #3E9C5C);
+  color: #fff;
+}
+
+.btn-success:hover {
+  filter: brightness(1.08);
+}
+
+/* Tabular figures for table data / numeric values (DESIGN.md). */
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
