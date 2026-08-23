@@ -95,8 +95,8 @@ frontend/
    + ficha de detalle al seleccionar uno (como el mockup ya mostrado:
    resumen, productos vendidos del catálogo, notas, botón "agregar a ruta
    de hoy").
-5. **Agendar Citas** — vista simple de calendario o lista de próximas
-   citas de ejemplo. Sin integración real a Google Calendar en esta fase.
+5. **Agenda** — calendario mensual con CRUD de citas. Sin integración
+   real a Google Calendar en esta fase.
 
 ## Qué NO hacer en esta fase
 

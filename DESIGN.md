@@ -45,7 +45,7 @@ Escala tipográfica sugerida: 32px (display) / 20px (subtítulo) / 15px
 - **Panel de control fijo a la izquierda** (`--bg-elevated`), íconos +
   etiqueta de cada módulo: **ClienteListo** (subir menú/carta/listado y ver
   el reporte generado), **Dashboard**, **Reporte de Visitas**, **Clientes**,
-  **Agendar Citas**. El módulo activo se marca con una línea dorada
+  **Agenda**. El módulo activo se marca con una línea dorada
   vertical a la izquierda del ítem, no con un fondo genérico resaltado.
 - **Mobile:** el panel colapsa a una barra inferior de íconos (tab bar),
   no a un menú hamburguesa oculto — dado que se usa en campo (visitas,

@@ -25,7 +25,7 @@ zola-crm/
 │   └── visitas.json           # generado internamente
 │
 ├── citas/
-│   └── citas.json             # eventos sincronizados con Google Calendar
+│   └── citas.json             # citas de la Agenda (CRUD interno + automáticas desde visitas)
 │
 ├── data-json/                 # texto de menús extraído (heredado de ClienteListo)
 ├── menus/                     # menús de clientes a analizar

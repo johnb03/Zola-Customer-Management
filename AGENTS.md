@@ -172,13 +172,18 @@ Directorio de clientes.
   productos específicos del catálogo (nombre + unidad), no un conteo
   genérico.
 
-## Módulo 5 — Agendar Citas
+## Módulo 5 — Agenda
 
-Sincronización con Google Calendar.
+Calendario de citas con clientes (CRUD interno).
 
-- No implementado aún — pendiente de definir si la sincronización es de
-  una sola vía (Zola crea el evento en Calendar) o de dos vías. No asumas
-  ninguna de las dos hasta que el usuario lo confirme.
+- Vista de calendario mensual con badges por día, navegación mes/año,
+  y lista de citas del día seleccionado.
+- Crear, completar o cancelar citas desde la vista.
+- Las citas también se crean automáticamente desde el Reporte de Visitas
+  cuando "Próximo Paso" incluye una fecha (origen: `visita`).
+- Sincronización con Google Calendar: pendiente de definir si será de
+  una sola vía o de dos vías. No asumas ninguna hasta que el usuario
+  lo confirme.
 
 ## Módulo 6 — Rutas de cobro
 

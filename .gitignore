@@ -1,5 +1,6 @@
 # Credenciales y configuración local — nunca se sube
 .env
+.env.*
 
 # Catálogo real de productos (usa catalogo-data-base/catalog.example.json como referencia)
 catalogo-data-base/*
@@ -21,6 +22,16 @@ visitas/*
 !visitas/.gitkeep
 exports/*
 !exports/.gitkeep
+citas/*
+!citas/.gitkeep
+notas/*
+!notas/.gitkeep
+clientes/*
+!clientes/.gitkeep
+cobros/*
+!cobros/.gitkeep
+entrantes/*
+!entrantes/.gitkeep
 
 # Memoria acumulada de Engram (conocimiento comercial, no código)
 *.db
@@ -30,3 +41,8 @@ exports/*
 /.smoke-test.*/
 # Local AI runtime state
 .atl/
+
+# Reportes del agente e info comercial del vendedor
+AGENTE_REPORTE.md
+*.xlsx
+design/*.op
