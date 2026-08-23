@@ -1,127 +1,160 @@
-# ClienteListo — Asistente de Estrategia de Ventas para Restaurantes
+# Zola Customer Management
 
-Herramienta para vendedores que elimina la fricción de venta de tu catálogo para cualquier restaurante. Tomas una imagen o un PDF del menú de un restaurante, subes tu base de datos de productos, y el agente se encarga del resto: identifica los platos, obtiene los ingredientes de cada uno, los compara contra los productos de tu catálogo y genera un documento Word fácil de leer y organizado, listo para venderle productos específicos de tu catálogo al cliente.
+CRM multi-módulo para vendedores de productos gourmet/alimentarios. Diseñado para uso desde el celular con interfaz mobile-first, almacenamiento local y conexión a internet solo para features de IA.
 
-Todo corre local y con herramientas gratuitas. Cada quien conecta su propia API y su propio catálogo — nada de eso viene incluido en este repo.
+## Módulos
 
-## ¿Cómo funciona?
+| Módulo | Descripción |
+|---|---|
+| **ClienteListo** | Análisis de documento del negocio (menú, carta, listado) contra el catálogo de productos para generar estrategia de venta |
+| **Dashboard** | Vista de monitoreo: clientes, visitas, ventas, cobros con gráficas y filtros |
+| **Reporte de Visitas** | Registro diario de visitas a clientes, compilado a Excel con plantilla personalizada |
+| **Clientes** | Directorio de clientes con embudo de ventas (potencial → activo → cobro) |
+| **Agendar Citas** | Calendario mensual con CRUD de citas, auto-creación desde visitas |
+| **Notas** | Notas diarias con conversión automática a visitas vía Gemini |
 
-1. Colocas una imagen o un PDF del menú del restaurante en `menus/`.
-2. El script extrae el texto (PDF con capa de texto → `pdftotext`; imagen o PDF escaneado → OCR con Tesseract) y lo guarda en `data-json/`.
-3. El agente analiza el menú: configura cada plato y obtiene los ingredientes que usa (marca como "explícito" lo que dice el menú y como "inferido" lo que deduce con criterio culinario).
-4. Compara esos ingredientes contra los productos de tu base de datos y clasifica cada uno:
-   - **Match directo** → producto a ofrecer, con el plato del que viene la necesidad.
-   - **Match posible** → sustituto o match parcial, explicando la diferencia.
-   - **Sin match** → gap, oportunidad de negocio a evaluar (no venta inmediata).
-5. Genera un reporte de estrategia en `reports/` con los productos recomendados, organizado por producto, empaque y justificación de venta.
-6. Convierte el reporte a Word (`.docx`) en `reportsDocx/`: el documento final, limpio y listo para la conversación comercial con el restaurante.
+## Stack
+
+- **Frontend:** Vue 3 + Vite 8, Vue Router, vanilla CSS, PWA
+- **Backend:** Express (server/index.mjs), 30+ endpoints REST
+- **IA:** Gemini 3.5 Flash (cada usuario conecta su propia API key)
+- **Diseño:** Paleta oscura cálida (espresso/dorado/burdeos), tipografía Satoshi
+- **Datos:** JSON interno, Excel (.xlsx) para exportación
 
 ## Requisitos
 
-- [opencode](https://opencode.ai) — agente de terminal que ejecuta el análisis.
-- Una API key gratuita de un proveedor soportado por opencode (ej.
-  [Google Gemini](https://aistudio.google.com/apikey), sin tarjeta de crédito).
-- [Engram](https://github.com/Gentleman-Programming/engram) — servidor MCP de
-  memoria persistente, para que el agente aprenda patrones entre reportes.
-- [Pandoc](https://pandoc.org/installing.html) — para convertir el reporte a
-  Word (.docx).
+- [Node.js](https://nodejs.org/) v26+
+- [pnpm](https://pnpm.io/) — `npm install -g pnpm`
+- [Python 3](https://www.python.org/downloads/) — scripts de extracción y plantillas
+- [Pandoc](https://pandoc.org/installing.html) — conversión a Word
+- [Tesseract](https://github.com/tesseract-ocr/tesseract#installing) — OCR para imágenes
+- [Poppler Utils](https://poppler.freedesktop.org/) — `sudo apt install poppler-utils` (pdftotext)
+- API key de [Google Gemini](https://aistudio.google.com/apikey) — sin tarjeta de crédito
 
 ## Instalación
 
 ```bash
-git clone <tu-repo> clientelisto
-cd clientelisto
+git clone <tu-repo> zola
+cd zola
 ./scripts/install.sh
 ```
 
-El script verifica que tengas las dependencias, y crea `.env` y
-`catalogo-data-base/catalog.json` a partir de los archivos de ejemplo.
+El script verifica dependencias, instala paquetes del frontend, crea `.env` y copia el catálogo de ejemplo.
 
 Luego:
 
-1. Edita `.env` con tu API key.
-2. Reemplaza `catalogo-data-base/catalog.json` con tu catálogo real de
-   productos (mismo formato que `catalogo-data-base/catalog.example.json`).
-3. Configura opencode con tu proveedor de IA (`opencode auth login` o variables
-   de entorno según el proveedor que elijas).
-4. Configura Engram como servidor MCP en opencode (ver su documentación).
+1. Edita `.env` con tu `GEMINI_API_KEY`.
+2. Reemplaza `catalogo-data-base/catalog.json` con tu catálogo real.
 
 ## Uso
 
 ```bash
+# Arrancar el servidor
+cd frontend && pnpm server
+
+# Abrir en el navegador
+# Desktop: http://localhost:5173
+# Teléfono (mismo WiFi): http://<IP-de-tu-PC>:5173
+# Luego "Agregar a pantalla de inicio" para instalar como app
+```
+
+### Pipeline ClienteListo (scripts)
+
+```bash
 # 1. Coloca el menú (imagen o PDF) en menus/
-cp ~/Descargas/menu-restaurante.jpg menus/imagen-menu.jpg
+cp ~/Descargas/menu-restaurante.jpg menus/
 
-# 2. Corre el análisis: extrae el texto, matchea contra tu catálogo
-#    y genera el reporte .md en reports/
-./scripts/run-analysis.sh menus/imagen-menu.jpg
+# 2. Extrae texto y genera reporte
+./scripts/run-analysis.sh menus/menu-restaurante.jpg
 
-# 3. Convierte el reporte a Word (se guarda en reportsDocx/)
-./scripts/convert-report.sh reports/AAAA-MM-DD_imagen-menu.md
+# 3. Convierte a Word
+./scripts/convert-report.sh reports/AAAA-MM-DD_menu-restaurante.md
 ```
 
-## Verificación
-
-Para comprobar que el pipeline no se rompió (extracción de texto, conversión a
-Word, sintaxis de los scripts y reglas de correcciones sobre el fixture), corre
-el smoke test:
+### Verificación
 
 ```bash
+# Smoke test del pipeline (sandbox temporal, no toca datos reales)
 ./scripts/smoke-test.sh
-```
 
-Corre dentro de un sandbox temporal en el repo (`.smoke-test.*`, ignorado por
-git) que se elimina solo al terminar, incluso si falla. No toca `menus/`,
-`data-json/`, `reports/`, `reportsDocx/` ni `catalogo-data-base/`. Termina con
-código 0 si todo pasa y con código distinto de 0 si alguna verificación falla.
-
-### Validación de un reporte (bajo demanda)
-
-Antes de entregar un reporte, puedes verificar las reglas mecánicas de
-`corrections.md` (negritas, línea en blanco entre entradas, pitch de 5 líneas,
-términos de costo prohibidos y marcas explícito/inferido):
-
-```bash
+# Validar reglas de correcciones sobre un reporte
 ./scripts/validate-report.sh reports/AAAA-MM-DD_nombre.md
 ```
-
-- Código 0: el reporte cumple las reglas (no imprime nada).
-- Código 1: hay violaciones; imprime solo el id de regla y el número de línea
-  (ej. `BOLD 12`, `SPACING 10,12`, `BAN 5`), nunca contenido del reporte.
-- Código 2: uso incorrecto o archivo ilegible.
-
-Es una verificación opcional y bajo demanda: no bloquea el flujo normal, y el
-smoke test también la ejecuta sobre el fixture para evitar regresiones.
 
 ## Estructura del proyecto
 
 ```
 .
-├── AGENTS.md              # instrucciones y proceso del agente
-├── corrections.md         # reglas fijas que el agente siempre respeta
-├── catalogo-data-base/
-│   ├── catalog.example.json  # estructura del catálogo (sin datos reales)
-│   └── catalog.json          # tu catálogo real (creado por install.sh, ignorado por git)
-├── .env.example           # variables de entorno de ejemplo
-├── menus/                 # menús a analizar (ignorado por git)
-├── reports/                # reportes .md generados (ignorado por git)
-├── reportsDocx/            # reportes convertidos a .docx (ignorado por git)
+├── AGENTS.md                 # Instrucciones del agente: 6 módulos, reglas
+├── DESIGN.md                 # Paleta de colores, tipografía, layout
+├── FRONTEND.md               # Especificación del frontend Vue 3
+├── STRUCTURE.md              # Estructura del proyecto CRM
+├── corrections.md            # Reglas fijas del agente (prioridad sobre AGENTS.md)
+│
+├── catalogo-data-base/       # Catálogo de productos
+│   ├── catalog.example.json  # Ejemplo (versionado)
+│   └── catalog.json          # Catálogo real (gitignored)
+│
+├── menus/                    # Menús de clientes a analizar (gitignored)
+├── data-json/                # Texto extraído de menús (gitignored)
+├── reports/                  # Reportes .md generados (gitignored)
+├── reportsDocx/              # Reportes convertidos a .docx (gitignored)
+├── visitas/                  # Datos de visitas (gitignored)
+├── citas/                    # Datos de citas (gitignored)
+├── notas/                    # Datos de notas (gitignored)
+├── clientes/                 # Directorio de clientes (gitignored)
+├── cobros/                   # Registro de cobros (gitignored)
+├── exports/                  # Salidas Excel (gitignored)
+│
+├── scripts/
+│   ├── install.sh            # Verifica dependencias e inicializa
+│   ├── extract-text.sh       # Extracción de texto (pdftotext / Tesseract)
+│   ├── run-analysis.sh       # Análisis completo del menú
+│   ├── convert-report.sh     # Conversión a Word con Pandoc
+│   ├── validate-report.sh    # Validador estático de reglas
+│   ├── smoke-test.sh         # Test de regresión en sandbox
+│   └── fill-excel-template.py # Rellena plantillas Excel preservando formato
+│
 ├── templates/
-│   └── reference.docx     # (opcional) estilo/logo para los Word generados
-├── test/
-│   └── fixtures/
-│       └── fixture-report.md  # reporte sintético para el smoke test
-└── scripts/
-    ├── install.sh
-    ├── run-analysis.sh
-    ├── convert-report.sh
-    ├── validate-report.sh  # valida reglas de correcciones de un reporte (bajo demanda)
-    └── smoke-test.sh      # smoke test del pipeline (corre en sandbox)
+│   └── reference.docx        # Plantilla de estilo para Word
+├── test/fixtures/
+│   └── fixture-report.md     # Reporte sintético para smoke test
+├── tessdata/
+│   └── spa.traineddata       # Modelo OCR español
+├── assets/fonts/satoshi/     # Tipografía Satoshi (OTF, TTF, WEB)
+├── design/                   # Archivos OpenPencil (sidebar, notas)
+├── actualizaciones/          # Reportes de actualizaciones y planes
+├── openspec/                 # Configuración SDD + specs archivados
+│
+└── frontend/                 # App Vue 3
+    ├── server/index.mjs      # Backend Express (30+ endpoints)
+    ├── src/
+    │   ├── App.vue           # Shell: Sidebar + ConfigPanel + modals
+    │   ├── api.js            # Capa de acceso a datos
+    │   ├── store.js          # Estado global
+    │   ├── router/           # Rutas Vue Router
+    │   ├── views/            # 6 vistas (Dashboard, Clientes, Visitas, Citas, Notas, Datos)
+    │   ├── components/       # Sidebar, ConfigPanel, AlertModal, ConfirmModal, etc.
+    │   ├── composables/      # useAlert, useConfirm
+    │   └── styles/tokens.css # Design tokens CSS
+    ├── vite.config.js        # Build + PWA config
+    └── package.json
 ```
 
-## Cómo mejora con el uso
+## Diseño
 
-Cada vez que corriges algo del reporte (un match mal hecho, una estrategia que
-no aplicaba), el agente guarda ese aprendizaje en Engram para las próximas
-corridas. Las correcciones que deben aplicarse SIEMPRE (no solo cuando el
-agente las "recuerda" relevantes) van directo en `corrections.md`.
+Interfaz oscura con tonos cálidos — "vitrina de mercancía fina, no dashboard corporativo". Detalles en `DESIGN.md`:
+
+- **Fondo:** espresso `#15100D`, superficies `#1F1811` / `#2A2118`
+- **Acentos:** dorado `#C9A227` (primario), burdeos `#7A1F2B` (secundario)
+- **Status:** oliva `#6B8F47` (activo), ámbar `#C98A3B` (pendiente), óxido `#A8433A` (atrasado)
+- **Tipografía:** Satoshi (Black/Bold/Medium/Regular), escala 32/20/15/13px
+- **Layout:** sidebar fijo (desktop), tab bar con 6 íconos (mobile)
+
+## Próximos pasos
+
+Ver `actualizaciones/planMobile.md` para el plan de convertir Zola en una app independiente con backend offline.
+
+---
+
+*Zola Customer Management — CRM para vendedores de productos gourmet.*
