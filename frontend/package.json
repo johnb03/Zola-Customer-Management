@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "DATA_HOME=${DATA_HOME:-/home/job/Projects/ClienteListo} node server/index.mjs"
+    "server": "DATA_HOME=${DATA_HOME:-/home/job/Projects/ClienteListo} node --env-file=.env server/index.mjs"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
