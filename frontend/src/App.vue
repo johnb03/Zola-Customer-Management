@@ -1,18 +1,30 @@
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import ConfigPanel from './components/ConfigPanel.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import AlertModal from './components/AlertModal.vue'
+import SetupScreen from './components/SetupScreen.vue'
 import { cargarUsuario } from './store.js'
+import { hasGeminiKey } from './gemini.js'
+
+const ready = ref(hasGeminiKey())
 
 onMounted(() => {
   cargarUsuario()
 })
+
+const onConfigured = () => {
+  ready.value = true
+}
 </script>
 
 <template>
-  <div class="app-shell">
+  <!-- Setup screen on first launch -->
+  <SetupScreen v-if="!ready" @configured="onConfigured" />
+
+  <!-- Main app -->
+  <div v-else class="app-shell">
     <Sidebar />
     <main class="main">
       <router-view />

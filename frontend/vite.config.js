@@ -3,14 +3,15 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
-    proxy: {
+    // Proxy solo en desarrollo (cuando el server Express corre en 8787)
+    proxy: mode === 'development' ? {
       '/api': {
         target: 'http://localhost:8787',
         changeOrigin: true,
       },
-    },
+    } : undefined,
   },
   plugins: [
     vue(),
@@ -39,4 +40,4 @@ export default defineConfig({
       },
     }),
   ],
-})
+}))
