@@ -114,6 +114,18 @@ const eventosPorDia = computed(() => {
   return map
 })
 
+const estadoDias = computed(() => {
+  const map = {}
+  for (const [f, items] of Object.entries(eventosPorDia.value)) {
+    if (!items.length) continue
+    const todosCompletados = items.every((e) =>
+      ['completada', 'realizada', 'confirmada', 'pagado'].includes(String(e.Estado || '').toLowerCase())
+    )
+    map[f] = todosCompletados ? 'todo-completado' : 'hay-pendientes'
+  }
+  return map
+})
+
 const citasDelDia = computed(() => {
   if (!diaSeleccionado.value) return []
   return (citasPorDia.value[diaSeleccionado.value] || []).sort((a, b) =>
@@ -244,6 +256,16 @@ const eliminarDesdePopup = async () => {
   }
 }
 
+const eliminarCitaInline = async (cita) => {
+  try {
+    await eliminarCita(cita.ID_Cita)
+    alerta({ mensaje: `${cita.ID_Cita} eliminada`, tipo: 'success' })
+    await cargar()
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+  }
+}
+
 const guardarCobroDesdePopup = async (cambios) => {
   if (!citaSeleccionada.value) return
   const cl = citaSeleccionada.value
@@ -310,6 +332,7 @@ const guardarDesdePopup = async (cambios) => {
               hoy: celda.fecha && esHoy(celda.fecha),
               seleccionado: celda.fecha && celda.fecha === diaSeleccionado,
               'con-eventos': celda.fecha && (eventosPorDia[celda.fecha]?.length || 0) > 0,
+              [estadoDias[celda.fecha]]: celda.fecha && estadoDias[celda.fecha],
             }"
             @click="celda.dia && seleccionarDia(celda.fecha)"
             :disabled="!celda.dia"
@@ -385,6 +408,12 @@ const guardarDesdePopup = async (cambios) => {
                 @click.stop="cancelarCita(c)"
                 title="Cancelar"
               >✕</button>
+              <button
+                type="button"
+                class="btn-action btn-danger"
+                @click.stop="eliminarCitaInline(c)"
+                title="Eliminar"
+              >🗑</button>
             </div>
           </div>
         </div>
@@ -530,6 +559,8 @@ const guardarDesdePopup = async (cambios) => {
 .cal-dia.con-eventos {
   font-weight: 700;
 }
+.cal-dia.hay-pendientes .badge { background: var(--accent-wine); }
+.cal-dia.todo-completado .badge { background: var(--status-success); }
 
 .badge {
   display: inline-flex;

@@ -45,3 +45,6 @@ entrantes/*
 # Reportes del agente e info comercial del vendedor
 AGENTE_REPORTE.md
 *.xlsx
+
+# Packaging plan (mobile independence, not part of core CRM)
+PACKAGING_PLAN.md

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { getNotas, crearNota, actualizarNota, eliminarNota, convertirNota, guardarVisitasDesdeNota } from '../api'
+import { getNotas, crearNota, actualizarNota, eliminarNota, convertirNota, guardarVisitasDesdeNota, contarVisitasPorFecha } from '../api'
 import { confirmar } from '../composables/useConfirm.js'
 import { alerta } from '../composables/useAlert.js'
 import ConversionFlow from '../components/ConversionFlow.vue'
@@ -25,6 +25,7 @@ const showPreview = ref(false)
 const previewVisitas = ref([])
 const previewNotaId = ref('')
 const previewNotaFecha = ref('')
+const previewReemplazadas = ref(0)
 
 // Filter
 const filtroFecha = ref('')
@@ -151,7 +152,7 @@ const iniciarConversion = (nota) => {
   showFlow.value = true
 }
 
-const onFlowDone = (resultado) => {
+const onFlowDone = async (resultado) => {
   const notaUsada = flowNota.value
   showFlow.value = false
   flowNota.value = null
@@ -165,10 +166,20 @@ const onFlowDone = (resultado) => {
     return
   }
 
+  // Consultar visitas existentes de esa fecha para la advertencia de reemplazo
+  let reemplazadas = 0
+  try {
+    const res = await contarVisitasPorFecha(notaUsada?.Fecha || '')
+    reemplazadas = res.count || 0
+  } catch {
+    // Silencioso — si falla, no mostramos advertencia
+  }
+
   // Open preview for review
   previewVisitas.value = resultado.visitas
   previewNotaId.value = notaUsada?.ID_Nota || ''
   previewNotaFecha.value = notaUsada?.Fecha || ''
+  previewReemplazadas.value = reemplazadas
   showPreview.value = true
 }
 
@@ -184,13 +195,15 @@ const confirmarConversion = async (filasActivas) => {
   }
   guardando.value = true
   try {
-    await guardarVisitasDesdeNota(previewNotaId.value, {
+    const res = await guardarVisitasDesdeNota(previewNotaId.value, {
       encabezado: { fecha: previewNotaFecha.value },
       filas: filasActivas,
     })
     showPreview.value = false
     await cargarNotas()
-    alerta({ mensaje: `${filasActivas.length} visita${filasActivas.length !== 1 ? 's' : ''} guardada${filasActivas.length !== 1 ? 's' : ''} correctamente`, tipo: 'success' })
+    const msgBase = `${filasActivas.length} visita${filasActivas.length !== 1 ? 's' : ''} guardada${filasActivas.length !== 1 ? 's' : ''}`
+    const msgReem = res.reemplazadas > 0 ? ` (se reemplazaron ${res.reemplazadas} existente${res.reemplazadas !== 1 ? 's' : ''})` : ''
+    alerta({ mensaje: `${msgBase} correctamente${msgReem}`, tipo: 'success' })
   } catch (e) {
     alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
   } finally {
@@ -201,6 +214,7 @@ const confirmarConversion = async (filasActivas) => {
 const cerrarPreview = () => {
   showPreview.value = false
   previewVisitas.value = []
+  previewReemplazadas.value = 0
 }
 </script>
 
@@ -268,20 +282,7 @@ const cerrarPreview = () => {
         </span>
         <p class="nota-text">{{ nota.Contenido }}</p>
         <div class="nota-footer">
-          <span class="nota-date">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14H4V6Z" />
-              <path d="M4 10h16" /><path d="M8 4v3M16 4v3" />
-            </svg>
-            {{ nota.Fecha }}
-          </span>
           <div class="nota-actions">
-            <button class="card-action-btn edit-card-btn" title="Editar" @click.stop="abrirEditar(nota)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                <path d="m15 5 4 4" />
-              </svg>
-            </button>
             <button class="card-action-btn delete-card-btn" title="Eliminar" @click.stop="pedirBorrar(nota)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />
@@ -296,25 +297,11 @@ const cerrarPreview = () => {
     <div v-if="showEditor" class="modal-overlay" @click.self="cerrarEditor">
       <div class="editor-modal">
         <div class="editor-header">
-          <h2 class="editor-title">{{ editando ? 'Editar nota' : 'Nueva nota' }}</h2>
           <button class="close-btn" @click="cerrarEditor">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 6 6 18" /><path d="m6 6 12 12" />
             </svg>
           </button>
-        </div>
-
-        <div class="editor-date-row">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14H4V6Z" />
-            <path d="M4 10h16" /><path d="M8 4v3M16 4v3" />
-          </svg>
-          <span class="date-label">Fecha de ruta:</span>
-          <input
-            type="date"
-            v-model="editorFecha"
-            class="date-input"
-          />
         </div>
 
         <div class="editor-textarea-wrap">
@@ -325,8 +312,6 @@ const cerrarPreview = () => {
             autofocus
           ></textarea>
         </div>
-
-        <div class="editor-divider"></div>
 
         <p v-if="editando" class="editor-warning">
           Nota: Convertir de nuevo reemplazará las visitas ya generadas.
@@ -372,6 +357,7 @@ const cerrarPreview = () => {
       :visitas="previewVisitas"
       :nota-id="previewNotaId"
       :nota-fecha="previewNotaFecha"
+      :reemplazadas="previewReemplazadas"
       @close="cerrarPreview"
       @confirm="confirmarConversion"
     />
@@ -549,18 +535,8 @@ const cerrarPreview = () => {
 
 .nota-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-}
-
-.nota-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Satoshi', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--text-secondary);
 }
 
 .nota-actions {
@@ -581,7 +557,6 @@ const cerrarPreview = () => {
   transition: background 120ms;
 }
 .card-action-btn:hover { background: rgba(255, 255, 255, 0.05); }
-.edit-card-btn { color: var(--text-secondary); }
 .delete-card-btn { color: var(--status-danger); }
 
 /* --- Editor modal --- */
@@ -597,7 +572,7 @@ const cerrarPreview = () => {
 
 .editor-modal {
   width: 560px;
-  height: 480px;
+  height: 580px;
   max-width: calc(100vw - 32px);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
@@ -610,16 +585,8 @@ const cerrarPreview = () => {
 .editor-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 16px;
-}
-
-.editor-title {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
+  justify-content: flex-end;
+  padding: 16px 24px 8px;
 }
 
 .close-btn {
@@ -637,32 +604,6 @@ const cerrarPreview = () => {
 }
 .close-btn:hover { color: var(--text-primary); }
 
-.editor-date-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 24px 16px;
-  color: var(--text-secondary);
-}
-
-.date-label {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.date-input {
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  font-family: 'Satoshi', sans-serif;
-  font-size: 13px;
-  outline: none;
-}
-.date-input:focus { border-color: var(--accent-gold); }
-
 .editor-textarea-wrap {
   flex: 1;
   padding: 0 24px;
@@ -674,8 +615,8 @@ const cerrarPreview = () => {
   height: 100%;
   padding: 16px;
   border-radius: 8px;
-  background: var(--bg-base);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-primary);
   font-family: 'Satoshi', sans-serif;
   font-size: 14px;
@@ -685,13 +626,17 @@ const cerrarPreview = () => {
   outline: none;
 }
 .editor-textarea::placeholder { color: rgba(168, 154, 133, 0.5); }
-.editor-textarea:focus { border-color: var(--accent-gold); }
+.editor-textarea:focus { border-color: transparent; }
 
-.editor-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 12px 24px 0;
-}
+/* Scrollbar transparente con hover gris */
+.editor-textarea::-webkit-scrollbar,
+.notes-grid::-webkit-scrollbar { width: 6px; }
+.editor-textarea::-webkit-scrollbar-track,
+.notes-grid::-webkit-scrollbar-track { background: transparent; }
+.editor-textarea::-webkit-scrollbar-thumb,
+.notes-grid::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+.editor-textarea:hover::-webkit-scrollbar-thumb,
+.notes-grid:hover::-webkit-scrollbar-thumb { background: rgba(168, 154, 133, 0.3); }
 
 .editor-warning {
   font-family: 'Satoshi', sans-serif;
@@ -768,7 +713,6 @@ const cerrarPreview = () => {
   }
   .nota-card { height: auto; min-height: 120px; }
   .nota-footer { gap: 8px; }
-  .nota-actions { display: flex; }
 
   .btn-convert {
     font-size: 10px;

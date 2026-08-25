@@ -146,19 +146,32 @@ const parseDate = (s) => {
 
 const autoEstatusDesdeVisitas = async (records) => {
   const clientes = await readJsonArray('clientes/clientes.json')
+  const citas = await readJsonArray('citas/citas.json')
   let updated = 0
+
+  const norm = (s) =>
+    String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+
   for (const r of records) {
-    const estab = String(r.Establecimiento || '').trim().toLowerCase()
+    const estab = norm(r.Establecimiento)
     if (!estab) continue
-    const idx = clientes.findIndex((c) => String(c.Nombre || '').trim().toLowerCase() === estab)
+    // Match parcial: nombre del cliente contiene el establecimiento o viceversa
+    const idx = clientes.findIndex((c) => {
+      const nombre = norm(c.Nombre)
+      return nombre.includes(estab) || estab.includes(nombre)
+    })
     if (idx === -1) continue
 
     const cliente = clientes[idx]
-    const pedido = String(r.Pedido || '').toLowerCase()
-    const proximoPaso = String(r.Proximo_Paso || '').trim().toLowerCase()
+    const pedido = norm(r.Pedido)
+    const proximoPaso = norm(r.Proximo_Paso)
     const fecha = r.Fecha || ''
 
-    if (pedido === 'sí') {
+    if (pedido === 'si') {
       cliente.Etapa_Embudo = 'Cliente activo'
       cliente.Fecha_Cobro = addDays(fecha, 15)
       if (String(r.Monto ?? '').trim()) cliente.Monto = String(r.Monto).trim()
@@ -168,19 +181,30 @@ const autoEstatusDesdeVisitas = async (records) => {
       cliente.Fecha_Cobro = addDays(fecha, 15)
       if (String(r.Monto ?? '').trim()) cliente.Monto = String(r.Monto).trim()
       updated++
-    } else if (proximoPaso === 'seguimiento') {
+    } else if (proximoPaso.includes('seguimiento') || proximoPaso.includes('visita')) {
       cliente.Etapa_Embudo = 'Seguimiento'
-      const nota = `[${fecha}] Próximo paso: Seguimiento`
+      const nota = `[${fecha}] Próximo paso: ${r.Proximo_Paso}`
       cliente.Notas = cliente.Notas ? `${cliente.Notas}\n${nota}` : nota
-      updated++
-    } else if (proximoPaso === 'visita') {
-      cliente.Etapa_Embudo = 'Visita'
-      const nota = `[${fecha}] Próximo paso: Visita`
-      cliente.Notas = cliente.Notas ? `${cliente.Notas}\n${nota}` : nota
+      // Crear cita recordatorio a 15 días
+      const fechaRecordatorio = addDays(fecha, 15)
+      if (fechaRecordatorio) {
+        const id = `cita-${String(citas.length + 1).padStart(3, '0')}`
+        citas.push({
+          ID_Cita: id,
+          Fecha: fechaRecordatorio,
+          Establecimiento: r.Establecimiento || cliente.Nombre || '',
+          Motivo: `Seguimiento automático desde visita ${fecha}`,
+          Estado: 'pendiente',
+          Origen: 'auto-estatus',
+        })
+      }
       updated++
     }
   }
-  if (updated > 0) await writeJson('clientes/clientes.json', clientes)
+  if (updated > 0) {
+    await writeJson('clientes/clientes.json', clientes)
+    await writeJson('citas/citas.json', citas)
+  }
   return updated
 }
 
@@ -1128,6 +1152,18 @@ app.get('/api/visitas', async (_req, res) => {
   }
 })
 
+// Cuenta visitas existentes para una fecha específica (para advertencia de reemplazo)
+app.get('/api/visitas/fecha/:fecha', async (req, res) => {
+  try {
+    const fecha = String(req.params.fecha || '').slice(0, 10)
+    const visitas = await readJsonArray('visitas/visitas.json')
+    const count = visitas.filter((v) => String(v.Fecha || '').slice(0, 10) === fecha).length
+    res.json({ fecha, count })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.post('/api/visitas', express.json({ limit: '5mb' }), async (req, res) => {
   try {
     const { encabezado = {}, filas = [] } = req.body || {}
@@ -1177,13 +1213,21 @@ app.post('/api/visitas', express.json({ limit: '5mb' }), async (req, res) => {
       }
     }
 
-    await writeJson('visitas/visitas.json', [...visitas, ...records])
+    // Reemplazar por fecha: eliminar visitas existentes de la misma fecha antes de guardar
+    const fechaReporte = String(encabezado.fecha || '').slice(0, 10)
+    const visitasAntes = visitas.length
+    const visitasFiltradas = fechaReporte
+      ? visitas.filter((v) => String(v.Fecha || '').slice(0, 10) !== fechaReporte)
+      : visitas
+    const reemplazadas = visitasAntes - visitasFiltradas.length
+
+    await writeJson('visitas/visitas.json', [...visitasFiltradas, ...records])
     if (nuevasCitas.length > 0) await writeJson('citas/citas.json', [...citas, ...nuevasCitas])
 
     // Auto-estatus: actualizar clientes según visitas guardadas
     const clientesActualizados = await autoEstatusDesdeVisitas(records)
 
-    res.json({ guardados: records.length, citas_creadas: nuevasCitas.length, advertencias, clientes_actualizados: clientesActualizados })
+    res.json({ guardados: records.length, reemplazadas, citas_creadas: nuevasCitas.length, advertencias, clientes_actualizados: clientesActualizados })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1912,7 +1956,15 @@ app.post('/api/notas/:id/guardar-visitas', express.json({ limit: '5mb' }), async
       }
     })
 
-    await writeJson('visitas/visitas.json', [...visitas, ...records])
+    // Reemplazar por fecha: eliminar visitas existentes de la misma fecha antes de guardar
+    const fechaReporte = String(encabezado.fecha || '').slice(0, 10)
+    const visitasAntes = visitas.length
+    const visitasFiltradas = fechaReporte
+      ? visitas.filter((v) => String(v.Fecha || '').slice(0, 10) !== fechaReporte)
+      : visitas
+    const reemplazadas = visitasAntes - visitasFiltradas.length
+
+    await writeJson('visitas/visitas.json', [...visitasFiltradas, ...records])
     if (nuevasCitas.length > 0) await writeJson('citas/citas.json', [...citas, ...nuevasCitas])
 
     // Mark nota as converted
@@ -1923,6 +1975,7 @@ app.post('/api/notas/:id/guardar-visitas', express.json({ limit: '5mb' }), async
 
     res.json({
       guardados: records.length,
+      reemplazadas,
       citas_creadas: nuevasCitas.length,
       clientes_actualizados: clientesActualizados,
     })

@@ -5,6 +5,7 @@ const props = defineProps({
   visitas: { type: Array, default: () => [] },
   notaId: { type: String, default: '' },
   notaFecha: { type: String, default: '' },
+  reemplazadas: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['close', 'confirm'])
@@ -43,6 +44,15 @@ const confirmar = () => {
         El agente detectó {{ filasVisibles }} visita{{ filasVisibles !== 1 ? 's' : '' }} en tu nota.
         Revisa, elimina las que no apliquen, y confirma para guardar.
       </p>
+
+      <!-- Warning: reemplazo -->
+      <div v-if="reemplazadas > 0" class="preview-warning">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <path d="M12 9v4"/><path d="M12 17h.01"/>
+        </svg>
+        <span>Se reemplazarán {{ reemplazadas }} visita{{ reemplazadas !== 1 ? 's' : '' }} existente{{ reemplazadas !== 1 ? 's' : '' }} de esta fecha.</span>
+      </div>
 
       <!-- Table header -->
       <div class="table-header">
@@ -178,6 +188,21 @@ const confirmar = () => {
   color: var(--text-secondary);
   padding: 0 24px 12px;
   margin: 0;
+}
+
+.preview-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  margin: 0 24px 12px;
+  background: rgba(201, 138, 59, 0.12);
+  border: 1px solid rgba(201, 138, 59, 0.3);
+  border-radius: 8px;
+  color: var(--status-warning);
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .table-header {

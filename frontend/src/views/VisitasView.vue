@@ -25,16 +25,15 @@ const encabezado = reactive({
   vendedor: saved.vendedor || '',
   zona_ruta: saved.zona_ruta || '',
   supervisor: saved.supervisor || '',
-  fecha: saved.fecha || hoy(),
+  fecha: hoy(), // siempre hoy, ignorar localStorage
 })
 
-// Guardar encabezado en localStorage cuando cambia
+// Guardar encabezado en localStorage cuando cambia (excepto fecha)
 watch(encabezado, (val) => {
   localStorage.setItem(STORAGE_KEY_ENC, JSON.stringify({
     vendedor: val.vendedor,
     zona_ruta: val.zona_ruta,
     supervisor: val.supervisor,
-    fecha: val.fecha,
   }))
 }, { deep: true })
 

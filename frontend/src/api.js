@@ -61,6 +61,8 @@ export const exportarExcel = ({ tipo, hoja, columnas, filas }) =>
 
 export const getVisitas = () => request('/visitas')
 
+export const contarVisitasPorFecha = (fecha) => request(`/visitas/fecha/${encodeURIComponent(fecha)}`)
+
 export const guardarVisitas = (payload) =>
   request('/visitas', {
     method: 'POST',
