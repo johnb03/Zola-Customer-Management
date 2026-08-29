@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { subirMenus } from '../api.js'
 import { notifyDataChanged } from '../store.js'
 import { alerta } from '../composables/useAlert.js'
+import { toErrorMessage } from '../utils/errors.js'
 
 const emit = defineEmits(['subido'])
 
@@ -72,8 +73,10 @@ const upload = async () => {
     files.value = []
     emit('subido', String(res.data?.archivo || '').replace(/\.json$/, ''))
   } catch (e) {
-    error.value = e.message
-    alerta({ titulo: 'Error', mensaje: `No se pudo subir el menú: ${e.message}`, tipo: 'error' })
+    const msg = toErrorMessage(e)
+    console.error('subirMenus falló:', e)
+    error.value = msg
+    alerta({ titulo: 'Error', mensaje: `No se pudo subir el menú: ${msg}`, tipo: 'error' })
   } finally {
     busy.value = false
     fase.value = ''

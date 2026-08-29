@@ -207,9 +207,12 @@ export const subirDatos = async (tipo, file) => {
     throw new Error('Formato no soportado: usa XLSX, CSV o JSON')
   }
 
+  // Snapshot (leído en el handler para no perder el File en móvil) o File vivo.
+  const buffer = file.buffer instanceof ArrayBuffer ? file.buffer : await file.arrayBuffer()
+
   // JSON → direct load (bypass entrantes queue)
   if (isJson) {
-    const text = await file.text()
+    const text = new TextDecoder().decode(buffer)
     let parsed
     try { parsed = JSON.parse(text) } catch { throw new Error('JSON inválido: no se pudo parsear') }
 
@@ -251,7 +254,6 @@ export const subirDatos = async (tipo, file) => {
   }
 
   // xlsx/csv → store in entrantes for conversion
-  const buffer = await file.arrayBuffer()
   await db.entrantes.save({
     id: `${tipo}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     tipo,
@@ -986,7 +988,7 @@ export const subirPlantillaReporte = async (file) => {
     throw new Error('Solo se aceptan archivos .xlsx o .xls')
   }
 
-  const buffer = await file.arrayBuffer()
+  const buffer = file.buffer instanceof ArrayBuffer ? file.buffer : await file.arrayBuffer()
   const ExcelJS = (await import('exceljs')).default
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.load(buffer)

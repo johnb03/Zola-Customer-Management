@@ -18,6 +18,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { createWorker } from 'tesseract.js'
 import tesseractWorkerSrc from 'tesseract.js/dist/worker.min.js?url'
+import { toErrorMessage } from './errors.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc
 
@@ -39,6 +40,8 @@ let _workerPromise = null
  */
 function getTesseractWorker() {
   if (!_workerPromise) {
+    // El intento de init se cachea: si falla, limpiamos la promesa para que el
+    // siguiente intento vuelva a crear el worker en lugar de recaer en el error.
     _workerPromise = createWorker(OCR_LANGS, 1, {
       workerPath: tesseractWorkerSrc,
       corePath: base() + 'tesseract-core',
@@ -46,6 +49,9 @@ function getTesseractWorker() {
       logger: () => {
         // progreso interno de carga del modelo — lo reportamos fuera
       },
+    }).catch((e) => {
+      _workerPromise = null
+      throw new Error(`El motor de OCR no pudo iniciarse: ${toErrorMessage(e)}`)
     })
   }
   return _workerPromise
@@ -70,7 +76,12 @@ function fileToDataURL(file) {
  */
 async function ocr(source) {
   const worker = await getTesseractWorker()
-  const res = await worker.recognize(source)
+  let res
+  try {
+    res = await worker.recognize(source)
+  } catch (e) {
+    throw new Error(`El OCR falló al procesar la imagen: ${toErrorMessage(e)}`)
+  }
   return String(res?.data?.text || '').trim()
 }
 

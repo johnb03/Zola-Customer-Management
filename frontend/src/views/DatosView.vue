@@ -6,6 +6,7 @@ import { getEstado, getReports, getReport, getMenus, subirDatos, convertirEntran
 import { dataVersion, notifyDataChanged } from '../store.js'
 import { confirmar } from '../composables/useConfirm.js'
 import { alerta } from '../composables/useAlert.js'
+import { toErrorMessage } from '../utils/errors.js'
 
 const estado = ref(null)
 const menus = ref([])
@@ -33,16 +34,25 @@ const cargarPlantilla = async () => {
 
 const subirPlantilla = async (event) => {
   const file = event.target.files?.[0]
-  event.target.value = ''
   if (!file) return
   subiendoPlantilla.value = true
+  let snapshot
   try {
-    const res = await subirPlantillaReporte(file)
+    const buffer = await file.arrayBuffer()
+    snapshot = { name: file.name, size: file.size, type: file.type, buffer }
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: `No se pudo leer la plantilla: ${toErrorMessage(e)}`, tipo: 'error' })
+    subiendoPlantilla.value = false
+    return
+  }
+  event.target.value = ''
+  try {
+    const res = await subirPlantillaReporte(snapshot)
     plantilla.value = res
     alerta({ mensaje: res.nota, tipo: 'success' })
     notifyDataChanged()
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: `Error al subir la plantilla: ${e.message}`, tipo: 'error' })
+    alerta({ titulo: 'Error', mensaje: `Error al subir la plantilla: ${toErrorMessage(e)}`, tipo: 'error' })
   } finally {
     subiendoPlantilla.value = false
   }
@@ -61,7 +71,7 @@ const load = async () => {
     reportes.value = r
     await cargarPlantilla()
   } catch (err) {
-    alerta({ titulo: 'Error', mensaje: err.message, tipo: 'error' })
+    alerta({ titulo: 'Error', mensaje: toErrorMessage(err), tipo: 'error' })
   } finally {
     cargando.value = false
   }
@@ -74,15 +84,43 @@ const catalogo = computed(() => estado.value?.catalogo)
 
 const subirArchivo = async (tipo, event) => {
   const file = event.target.files?.[0]
-  event.target.value = ''
   if (!file) return
+
+  // Leer el contenido INMEDIATAMENTE, antes de resetear el input: en Android,
+  // reiniciar el value puede revocar el acceso al File del picker y la lectura
+  // posterior de `subirDatos` falla con "directory could not be found".
   subiendo.value = tipo
+  let snapshot
   try {
-    const res = await subirDatos(tipo, file)
-    alerta({ mensaje: `Guardado: ${res.ruta} — ${res.nota}`, tipo: 'success' })
+    const buffer = await file.arrayBuffer()
+    snapshot = { name: file.name, size: file.size, type: file.type, buffer }
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: `No se pudo leer el archivo: ${toErrorMessage(e)}`, tipo: 'error' })
+    subiendo.value = ''
+    return
+  }
+  event.target.value = ''
+
+  try {
+    const res = await subirDatos(tipo, snapshot)
+    // Si fue a la cola de pendientes, convertirlo automáticamente al instante.
+    if (String(res.ruta || '').startsWith('entrantes/')) {
+      try {
+        const conv = await convertirEntrante(tipo, snapshot.name)
+        alerta({ mensaje: conv.nota, tipo: 'success' })
+      } catch (e) {
+        alerta({
+          titulo: 'Guardado, falta convertir',
+          mensaje: `El archivo quedó en Pendientes. La conversión automática falló: ${toErrorMessage(e)}`,
+          tipo: 'warning',
+        })
+      }
+    } else {
+      alerta({ mensaje: `Guardado: ${res.ruta} — ${res.nota}`, tipo: 'success' })
+    }
     notifyDataChanged()
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: 'Error', mensaje: toErrorMessage(e), tipo: 'error' })
   } finally {
     subiendo.value = ''
   }
@@ -96,7 +134,7 @@ const convertir = async (tipo, archivo) => {
     alerta({ mensaje: res.nota, tipo: 'success' })
     notifyDataChanged()
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: 'Error', mensaje: toErrorMessage(e), tipo: 'error' })
   } finally {
     convirtiendo.delete(key)
   }
@@ -116,7 +154,7 @@ const eliminar = async (tipo, archivo) => {
     alerta({ mensaje: `Archivo "${archivo}" eliminado.`, tipo: 'success' })
     notifyDataChanged()
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: `Error al eliminar: ${e.message}`, tipo: 'error' })
+    alerta({ titulo: 'Error', mensaje: `Error al eliminar: ${toErrorMessage(e)}`, tipo: 'error' })
   } finally {
     eliminando.delete(key)
   }
