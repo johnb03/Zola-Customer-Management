@@ -49,10 +49,11 @@ export const fmt = (v) => {
 // ─── Estado ──────────────────────────────────────────────────────
 
 export const getEstado = async () => {
-  const [stats, entrantes, reportsDocx] = await Promise.all([
+  const [stats, entrantes, reportsDocx, catalogoRaw] = await Promise.all([
     db.stats(),
     db.entrantes.getAll(),
     db.reportsDocx.getAll(),
+    db.catalogo.get(),
   ])
   const clientesPendientes = entrantes
     .filter((e) => e.tipo === 'clientes')
@@ -60,11 +61,18 @@ export const getEstado = async () => {
   const productosPendientes = entrantes
     .filter((e) => e.tipo === 'productos')
     .map((e) => e.archivo)
+
+  // Totales del catálogo (mismo criterio que la conversión de productos).
+  const categorias = catalogoRaw?.categorias && typeof catalogoRaw.categorias === 'object' ? catalogoRaw.categorias : {}
+  const totalProductos = Object.values(categorias).reduce((a, c) => a + (Array.isArray(c) ? c.length : 0), 0)
+  const totalCategorias = Object.keys(categorias).length
+
   return {
     db: 'indexeddb',
     stats,
     entrantes: { clientes: clientesPendientes, productos: productosPendientes },
     reportesDocx: reportsDocx.map((r) => r.archivo),
+    catalogo: { totalProductos, totalCategorias },
   }
 }
 
