@@ -274,6 +274,9 @@ const crearClienteSubmit = async (form) => {
   try {
     const nuevo = await crearCliente(form)
     await cargar()
+    // Un cliente nuevo es "Cliente potencial" por defecto, que NO está en el
+    // filtro de activos — forzamos "Todos" para que se vea al crearlo.
+    verTodos.value = true
     selectedId.value = nuevo.ID_Cliente
     showCrearModal.value = false
     alerta({ mensaje: 'Cliente creado.', tipo: 'success' })

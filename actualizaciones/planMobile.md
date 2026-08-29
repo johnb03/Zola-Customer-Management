@@ -1,7 +1,7 @@
 # Plan: Zola como app independiente (backend offline, solo IA online)
 
 **Fecha:** 2026-08-23
-**Objetivo:** Convertir Zola en una app que funcione desde el teléfono sin servidor aparte, con datos locales y solo conexión a internet para Gemini.
+**Objetivo:** Convertir Zola en una app que funcione desde el teléfono sin servidor aparte, con datos locales y solo conexión a internet para el agente de IA.
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | **Backend** | Express en PC (`server/index.mjs`) | N/A — lógica en el frontend |
 | **Almacenamiento** | JSON files en disco (`DATA_HOME`) | IndexedDB en el navegador |
-| **Gemini** | Backend llama a Gemini | Frontend llama directamente (key del usuario) |
+| **IA** | Backend llama a proveedor IA | Frontend llama directamente (key del usuario) |
 | **Excel** | `exceljs` server-side | `exceljs` browser-side (funciona igual) |
 | **Fotos** | Archivos en disco + endpoint | IndexedDB (base64/blob) |
 | **Instalación** | Clone + install.sh + pnpm server | Abrir URL → "Agregar a pantalla de inicio" |
@@ -64,45 +64,31 @@ DELETE /api/citas/:id    →    db.citas.delete(id)
 
 ---
 
-## 4. Fase 2: Gemini browser-side
+## 4. Fase 2: Agente de IA browser-side
 
-Mover `callGemini()` de `server/index.mjs` a `frontend/src/gemini.js`:
+Mover `callAgente()` de `server/index.mjs` a `frontend/src/agente.js`:
 
 ```js
-// gemini.js
-const GEMINI_KEY = localStorage.getItem('zola_gemini_key') || ''
+// agente.js — multi-proveedor (Gemini, Claude, ChatGPT, DeepSeek, custom)
+const STORAGE_PROVIDER = 'zola_agente_provider'
+const STORAGE_KEY = 'zola_agente_key'
+const STORAGE_MODEL = 'zola_agente_model'
+const STORAGE_BASE_URL = 'zola_agente_base_url'
 
-export const setGeminiKey = (key) => {
-  localStorage.setItem('zola_gemini_key', key)
-}
+export const setAgenteConfig = ({ provider, apiKey, model, baseUrl }) => { ... }
 
-export const callGemini = async (prompt) => {
-  const model = 'gemini-3.5-flash'
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 8192,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-    }
-  )
-  // ... parse response
+export const callAgente = async (prompt) => {
+  const { provider, apiKey, model, baseUrl } = getAgenteConfig()
+  // Routing por provider: Gemini format / Claude format / OpenAI format
 }
 ```
 
 **Archivos a crear:**
-- `frontend/src/gemini.js`
+- `frontend/src/agente.js`
 
 **Archivos a modificar:**
-- `frontend/src/views/NotasView.vue` — usar `callGemini` directamente en vez de `POST /api/notas/:id/convertir`
-- `frontend/src/views/DatosView.vue` — usar `callGemini` para análisis de plantillas
+- `frontend/src/views/NotasView.vue` — usar `callAgente` directamente en vez de `POST /api/notas/:id/convertir`
+- `frontend/src/views/DatosView.vue` — usar `callAgente` para análisis de plantillas
 
 ---
 
@@ -137,7 +123,7 @@ Crear herramienta de importación para mover datos existentes del servidor al na
 
 Crear pantalla de setup首次:
 
-- `frontend/src/components/SetupScreen.vue` — pide API key de Gemini, la guarda en localStorage
+- `frontend/src/components/SetupScreen.vue` — configura proveedor de IA, modelo y API key, la guarda en localStorage
 - Se muestra solo si no hay key configurada
 
 ---
@@ -157,7 +143,7 @@ Crear pantalla de setup首次:
 | Archivo | Función |
 |---|---|
 | `frontend/src/db.js` | Capa de datos IndexedDB |
-| `frontend/src/gemini.js` | Cliente Gemini browser-side |
+| `frontend/src/agente.js` | Cliente agente IA browser-side (multi-proveedor) |
 | `frontend/src/components/SetupScreen.vue` | Setup de API key |
 | `frontend/src/utils/excel.js` | Generación Excel client-side |
 | `frontend/src/utils/import.js` | Importación de datos del servidor |
@@ -168,10 +154,10 @@ Crear pantalla de setup首次:
 |---|---|
 | `frontend/src/api.js` | Reescribir → llama a `db.js` |
 | `frontend/src/store.js` | Usar `db.usuario` |
-| `frontend/src/views/NotasView.vue` | Gemini directo desde browser |
+| `frontend/src/views/NotasView.vue` | Agente IA directo desde browser |
 | `frontend/src/views/VisitasView.vue` | Excel client-side |
 | `frontend/src/views/DashboardView.vue` | Excel client-side |
-| `frontend/src/views/DatosView.vue` | Import + Gemini directo |
+| `frontend/src/views/DatosView.vue` | Import + agente IA directo |
 | `frontend/src/App.vue` | Setup screen首次 |
 | `frontend/vite.config.js` | PWA config mejorado |
 
@@ -186,7 +172,7 @@ Crear pantalla de setup首次:
 ## 11. Orden de implementación
 
 1. `db.js` + refactor `api.js` (base de todo)
-2. `gemini.js` + refactor NotasView/DatosView
+2. `agente.js` + refactor NotasView/DatosView
 3. Excel client-side (VisitasView, DashboardView)
 4. Fotos + archivos en IndexedDB
 5. Setup screen首次

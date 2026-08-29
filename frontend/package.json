@@ -10,9 +10,12 @@
     "server": "DATA_HOME=${DATA_HOME:-/home/job/Projects/ClienteListo} node --env-file=.env server/index.mjs"
   },
   "dependencies": {
+    "docx": "^9.7.1",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.2.0",
+    "pdfjs-dist": "^6.3.289",
+    "tesseract.js": "^7.0.0",
     "vite-plugin-pwa": "^1.3.0",
     "vue": "^3.5.40",
     "vue-router": "^4.6.4"

@@ -26,7 +26,7 @@ const esperar = (ms) => new Promise((resolve) => {
 
 onMounted(async () => {
   try {
-    // Paso 1: Extraer visitas con Gemini (real)
+    // Paso 1: Extraer visitas con agente IA
     pasoActivo.value = 0
     await esperar(800) // brief pause so user sees the step
     if (abortado.value) return

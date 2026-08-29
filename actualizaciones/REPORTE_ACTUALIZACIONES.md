@@ -17,7 +17,7 @@ Zola Customer Management es un **CRM multi-módulo para vendedores de productos 
 3. **Reporte de Visitas** — registro diario de visitas a clientes, compilado a Excel.
 4. **Clientes** — directorio de clientes con embudo de ventas.
 5. **Agenda** — calendario de citas con CRUD + sincronización futura con Google Calendar.
-6. **Notas** — notas diarias con conversión automática a visitas vía Gemini.
+6. **Notas** — notas diarias con conversión automática a visitas vía agente IA.
 
 **Principios de arquitectura:**
 - Todo lo que entra al sistema se compila a **JSON interno** antes de que cualquier módulo lo use.
@@ -94,7 +94,7 @@ Zola Customer Management es un **CRM multi-módulo para vendedores de productos 
 |---|---|
 | `frontend/package.json` | Dependencias: Vue 3, Vite 8, vue-router, vite-plugin-pwa. |
 | `frontend/vite.config.js` | Build config + PWA manifest. |
-| `frontend/server/index.mjs` | Backend Express: 30+ endpoints REST, Gemini integration, Excel export. |
+| `frontend/server/index.mjs` | Backend Express: 30+ endpoints REST, agente IA integration, Excel export. |
 | `frontend/src/App.vue` | Shell principal: Sidebar + ConfigPanel + ConfirmModal + AlertModal. |
 | `frontend/src/main.js` | Entry point Vue. |
 | `frontend/src/router/index.js` | Rutas: `/dashboard`, `/visitas`, `/clientes`, `/citas`, `/datos`, `/notas`. |
@@ -112,7 +112,7 @@ Zola Customer Management es un **CRM multi-módulo para vendedores de productos 
 | `VisitasView.vue` | Tabla de visitas, filtros, upload de plantilla, export con plantilla personalizada. |
 | `ClientesView.vue` | Directorio de clientes, crear/editar, ficha con productos, cobro. |
 | `CitasView.vue` | Calendario mensual con badges, CRUD de citas, citas auto-creadas desde visitas. |
-| `NotasView.vue` | Notas diarias, conversión automática a visitas vía Gemini, grid responsive. |
+| `NotasView.vue` | Notas diarias, conversión automática a visitas vía agente IA, grid responsive. |
 | `DatosView.vue` | Gestión de datos: catálogo, menús, reportes, upload de clientes/productos. |
 | **Composables:** | |
 | `useAlert.js` | `alerta()` — triggered AlertModal (success, error, warning, info). |
@@ -145,7 +145,7 @@ Archivo de dirección visual — "vitrina de mercancía fina, no dashboard corpo
 - **Build:** 64 módulos, build limpio sin warnings.
 - **Backend:** Express en `server/index.mjs`, 30+ endpoints REST, proxy Vite (`/api` → `:8787`).
 - **Datos:** todo en DATA_HOME (`/home/job/Projects/ClienteListo`), JSON interno, sin mock data.
-- **Gemini:** modelo `gemini-3.5-flash`, temperature 0.2, thinkingBudget 0. Para conversión de notas a visitas y análisis de plantillas.
+- **IA:** Agente multi-proveedor, temperature 0.2. Para conversión de notas a visitas y análisis de plantillas.
 
 ### 4.4 Sidebar (rediseño completo)
 
@@ -187,7 +187,7 @@ Reemplaza los inline `msg`/`error` refs de todas las vistas:
 ### 4.8 Módulo Notas
 
 - CRUD completo de notas diarias.
-- Conversión automática a visitas vía Gemini (`POST /api/notas/:id/convertir`).
+- Conversión automática a visitas vía agente IA (`POST /api/notas/:id/convertir`).
 - Guardado de visitas convertidas + mark nota como convertida.
 - Grid responsive (3 cols → 2 → 1).
 - Botón crear: solo ícono `+` circular (border-radius 100%, 40×40px mobile).
@@ -269,7 +269,7 @@ Test de regresión determinístico (208 líneas) en sandbox temporal:
 ### 4.17 Configuración y arranque
 
 - **`.gitignore`** extendido: protege `visitas/`, `exports/`, `.smoke-test.*`, `.atl/`.
-- **`.env`**: `GEMINI_API_KEY` para integración con Gemini.
+- **`.env`**: `GEMINI_API_KEY` para integración con agente IA.
 - **Arranque:** `node server/index.mjs` con `--env-file=.env`, port 8787. Vite dev en 5173.
 - **Playwright:** chromium en `/usr/bin/chromium` para testing visual.
 
@@ -280,7 +280,7 @@ Test de regresión determinístico (208 líneas) en sandbox temporal:
 - **Git:** rama `main` sincronizada con `origin/main`.
 - **Working tree:** 4 archivos modificados sin commitear, 3 elementos sin trackear.
 - **Frontend:** Vue 3 funcional, 64 módulos, build limpio. Conectado a backend Express con datos reales.
-- **Backend:** 30+ endpoints REST, Gemini integration, Excel export, usuario CRUD.
+- **Backend:** 30+ endpoints REST, agente IA integration, Excel export, usuario CRUD.
 - **Activos locales:** catálogo real, modelo OCR español, template Word, tipografía Satoshi, `.env` configurado.
 - **OpenSpec:** 2 cambios archivados (pipeline-smoke-test, corrections-rules), specs sincronizados.
 - **No versionado por diseño:** catálogo real, menús de clientes, reportes, `.env`, memoria Engram, frontend completo.

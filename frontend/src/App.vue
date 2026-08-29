@@ -6,9 +6,9 @@ import ConfirmModal from './components/ConfirmModal.vue'
 import AlertModal from './components/AlertModal.vue'
 import SetupScreen from './components/SetupScreen.vue'
 import { cargarUsuario } from './store.js'
-import { hasGeminiKey } from './gemini.js'
+import { hasAgenteConfig } from './agente.js'
 
-const ready = ref(hasGeminiKey())
+const ready = ref(hasAgenteConfig())
 
 onMounted(() => {
   cargarUsuario()

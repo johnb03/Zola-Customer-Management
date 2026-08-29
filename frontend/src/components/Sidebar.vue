@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usuario, showConfig } from '../store.js'
 
@@ -74,6 +75,12 @@ const getInitials = (name) => {
 const openConfig = () => {
   showConfig.value = true
 }
+
+const scrolled = ref(false)
+const onScroll = () => { scrolled.value = window.scrollY > 10 }
+
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
@@ -128,6 +135,19 @@ const openConfig = () => {
       </div>
     </div>
   </aside>
+
+  <!-- Mobile top bar -->
+  <div class="mobile-header" :class="{ scrolled }">
+    <div class="mobile-header-user">
+      <div v-if="usuario.foto" class="mobile-avatar mobile-avatar-photo">
+        <img :src="usuario.foto" alt="Foto" />
+      </div>
+      <div v-else class="mobile-avatar mobile-avatar-initials">
+        {{ getInitials(usuario.nombre) }}
+      </div>
+      <span class="mobile-name">{{ usuario.nombre || 'Sin nombre' }}</span>
+    </div>
+  </div>
 
   <!-- Mobile tab bar -->
   <nav class="tab-bar">
@@ -354,6 +374,11 @@ const openConfig = () => {
   background: var(--bg-surface);
 }
 
+/* Mobile top bar (hidden on desktop) */
+.mobile-header {
+  display: none;
+}
+
 /* Mobile bottom tab bar */
 .tab-bar {
   display: none;
@@ -362,6 +387,74 @@ const openConfig = () => {
 @media (max-width: 768px) {
   .sidebar {
     display: none;
+  }
+
+  /* Mobile top bar */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    background: transparent;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    transition: backdrop-filter 300ms ease, -webkit-backdrop-filter 300ms ease, border-color 300ms ease;
+    border-bottom: 1px solid transparent;
+    -webkit-backdrop-filter: blur(0px);
+    backdrop-filter: blur(0px);
+  }
+
+  .mobile-header.scrolled {
+    background: rgba(21, 16, 13, 0.6);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border-bottom-color: var(--border);
+  }
+
+  .mobile-header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .mobile-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .mobile-avatar-initials {
+    background: var(--bg-surface);
+    color: var(--accent-gold);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .mobile-avatar-photo {
+    background: #5C4F3F;
+  }
+
+  .mobile-avatar-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mobile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
   }
 
   .tab-bar {

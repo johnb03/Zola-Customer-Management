@@ -150,6 +150,10 @@ a {
   opacity: 0.75;
 }
 
+@media (max-width: 768px) {
+  .firma { margin-bottom: 20px; }
+}
+
 /* Shared card + button primitives (vanilla CSS, no framework). */
 
 .card {

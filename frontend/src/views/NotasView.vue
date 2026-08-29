@@ -193,11 +193,35 @@ const confirmarConversion = async (filasActivas) => {
     showPreview.value = false
     return
   }
+  // Defensa "una vez por día": si OTRA nota de la misma fecha ya convirtió,
+  // guardar reemplaza el reporte completo de ese día — exigir confirmación explícita.
+  try {
+    const notasActuales = await getNotas()
+    const otras = notasActuales.filter(
+      (n) =>
+        n.Convertida &&
+        n.ID_Nota !== previewNotaId.value &&
+        String(n.Fecha || '').slice(0, 10) === String(previewNotaFecha.value || '').slice(0, 10),
+    )
+    if (otras.length > 0) {
+      const existentes = previewReemplazadas.value > 0 ? previewReemplazadas.value : 'varias'
+      const ok = await confirmar({
+        titulo: 'Otra nota ya convirtió este día',
+        mensaje: `La nota "${otras[0].ID_Nota}" (${String(otras[0].Fecha || '').slice(0, 10)}) ya convirtió visitas para este día. Al guardar se REEMPLAZARÁ todo el reporte de la fecha (${existentes} visita${previewReemplazadas.value === 1 ? '' : 's'} existente${previewReemplazadas.value === 1 ? '' : 's'}) por estas ${filasActivas.length} visita${filasActivas.length !== 1 ? 's' : ''}. ¿Continuar?`,
+      })
+      if (!ok) {
+        showPreview.value = false
+        return
+      }
+    }
+  } catch {
+    // Consulta no crítica: si falla, la preview ya avisa el reemplazo por fecha
+  }
   guardando.value = true
   try {
     const res = await guardarVisitasDesdeNota(previewNotaId.value, {
-      encabezado: { fecha: previewNotaFecha.value },
-      filas: filasActivas,
+      fecha: previewNotaFecha.value,
+      visitas: filasActivas,
     })
     showPreview.value = false
     await cargarNotas()

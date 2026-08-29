@@ -12,6 +12,11 @@ const app = express()
 const PORT = process.env.PORT || 8787
 const DATA_HOME = process.env.DATA_HOME || '/home/job/Projects/ClienteListo'
 
+// Frontend buildado (dist/) se sirve desde el server Express también, así la
+// app y la API viven en el mismo origen. El orden importa: estáticos y rutas
+// API van ANTES del fallback SPA (que responde index.html solo a GET no-API).
+const DIST_DIR = path.join(process.cwd(), 'dist')
+
 // --- Utilidades de rutas seguras -------------------------------------------------
 
 const resolveSafe = (base, rel) => {
@@ -353,6 +358,53 @@ app.get('/api/reportsDocx/:name', async (req, res) => {
   }
 })
 
+// Guarda el reporte generado en la app (Análisis ClienteListo) y lo convierte
+// a Word con el mismo pipeline de ClienteListo (pandoc + reference.docx).
+app.post('/api/reports', express.json({ limit: '2mb' }), async (req, res) => {
+  try {
+    const { nombre = '', contenido = '' } = req.body || {}
+    const texto = String(contenido).trim()
+    if (!texto) return res.status(400).json({ error: 'Reporte vacío' })
+
+    const base = String(nombre)
+      .replace(/\.[^.]+$/, '')            // sin extensión
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 80)
+      .replace(/^_+|_+$/g, '')
+      .trim()
+    if (!base) return res.status(400).json({ error: 'Nombre de reporte inválido' })
+
+    const fecha = new Date().toISOString().slice(0, 10)
+    const mdName = `${fecha}_${base}.md`
+    const mdRel = path.join('reports', mdName)
+    const mdFile = safeJoin('reports', mdName)
+    await fs.mkdir(path.join(DATA_HOME, 'reports'), { recursive: true })
+    await fs.writeFile(mdFile, texto, 'utf-8')
+
+    // Conversión a .docx: mismo script del flujo ClienteListo por terminal.
+    const script = path.join(DATA_HOME, 'scripts', 'convert-report.sh')
+    const docxRel = path.join('reportsDocx', `${fecha}_${base}.docx`)
+    let docx = null
+    const convertResult = await new Promise((resolve) => {
+      execFile('bash', [script, path.relative(DATA_HOME, mdFile)], { cwd: DATA_HOME }, (err, stdout, stderr) => {
+        if (err) {
+          console.warn('[Reports] convert-report.sh falló:', stderr || stdout || err.message)
+          resolve({ ok: false })
+        } else {
+          resolve({ ok: true, stdout })
+        }
+      })
+    })
+    if (convertResult.ok) {
+      docx = `${fecha}_${base}.docx`
+    }
+
+    res.json({ md: mdName, docx })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // --- Upload de menú ---------------------------------------------------------------
 
 const upload = multer({
@@ -364,40 +416,98 @@ const upload = multer({
   },
 })
 
-app.post('/api/upload', upload.single('archivo'), async (req, res) => {
+app.post('/api/upload', upload.array('archivos', 10), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Archivo no recibido' })
-    const original = path.basename(req.file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_')
-    const target = safeJoin('menus', original)
-    await fs.mkdir(path.join(DATA_HOME, 'menus'), { recursive: true })
-    await fs.writeFile(target, req.file.buffer)
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Archivo no recibido' })
 
-    // Pipeline de extracción real de ClienteListo: scripts/extract-text.sh
+    // Nombre del menú (opcional): sanitizado igual que los nombres de reporte.
+    let nombre = String((req.body && req.body.nombre) || '')
+      .replace(/\.[^.]+$/, '')            // sin extensión
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 80)
+      .replace(/^_+|_+$/g, '')
+      .trim()
+    if (!nombre) {
+      // Fallback: basename del primer archivo sin extensión.
+      nombre = path.basename(req.files[0].originalname).replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_')
+    }
+
     const script = path.join(DATA_HOME, 'scripts', 'extract-text.sh')
-    const result = await new Promise((resolve, reject) => {
-      execFile('bash', [script, path.relative(DATA_HOME, target)], { cwd: DATA_HOME }, (err, stdout, stderr) => {
-        if (err) {
-          reject(new Error(`extract-text.sh falló: ${stderr || stdout || err.message}`))
-        } else {
-          resolve({ stdout, stderr })
-        }
-      })
-    })
+    await fs.mkdir(path.join(DATA_HOME, 'menus'), { recursive: true })
 
-    const baseName = original.replace(/\.[^.]+$/, '')
-    const dataJsonFile = path.join('data-json', `${baseName}.json`)
-    const data = await readJson(dataJsonFile)
+    // Guardar cada archivo en menus/ (sin sobrescribir) y extraer su texto.
+    const textos = []
+    const methods = []
+    const sourceFiles = []
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i]
+      const base = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_')
+      const ext = path.extname(base)
+      let guardado = base
+      let contador = 2
+      while (existsSync(resolveSafe(DATA_HOME, path.join('menus', guardado)))) {
+        guardado = `${path.basename(base, ext)}-${contador}${ext}`
+        contador++
+      }
+      const target = safeJoin('menus', guardado)
+      await fs.writeFile(target, file.buffer)
+
+      let texto = ''
+      let method = ''
+      try {
+        await new Promise((resolve, reject) => {
+          execFile('bash', [script, path.relative(DATA_HOME, target)], { cwd: DATA_HOME }, (err, stdout, stderr) => {
+            if (err) {
+              reject(new Error(`extract-text.sh falló: ${stderr || stdout || err.message}`))
+            } else {
+              resolve({ stdout, stderr })
+            }
+          })
+        })
+        // extract-text.sh escribe data-json/<basename>.json
+        const guardadoBase = guardado.replace(/\.[^.]+$/, '')
+        const data = await readJsonIfExists(path.join('data-json', `${guardadoBase}.json`))
+        if (data) {
+          texto = String(data.text || '')
+          method = String(data.extraction_method || '')
+        }
+        // Borra el data-json individual: se combinará en UN solo extracto.
+        await fs.unlink(resolveSafe(DATA_HOME, path.join('data-json', `${guardadoBase}.json`))).catch(() => {})
+      } catch (err) {
+        // Si un archivo individual falla, propagamos el error (los previos ya
+        // quedaron sin data-json y no se dejan menús separados).
+        throw err
+      }
+
+      sourceFiles.push(file.originalname)
+      if (method) methods.push(method)
+      const separador = textos.length > 0 ? `\n\n--- Hoja ${i + 1}: ${guardado} ---\n\n` : ''
+      textos.push(`${separador}${texto}`)
+    }
+
+    // Concatena todos los textos en UN solo extracto.
+    const textoConcatenado = textos.join('')
+    const extractionMethod = methods.find(Boolean) || 'desconocido'
+    const dataJsonFile = path.join('data-json', `${nombre}.json`)
+    await writeJson(dataJsonFile, {
+      source_file: sourceFiles[0],
+      source_files: sourceFiles,
+      extraction_method: extractionMethod,
+      text: textoConcatenado,
+    })
 
     res.json({
-      archivo: original,
-      dataJson: dataJsonFile,
-      extraction_method: data.extraction_method || 'desconocido',
-      lineas: (data.text || '').split('\n').filter((l) => l.trim()).length,
-      texto: data.text || '',
-      stdout: result.stdout.trim(),
+      ok: true,
+      data: {
+        archivo: `${nombre}.json`,
+        source_file: sourceFiles[0],
+        source_files: sourceFiles,
+        extraction_method: extractionMethod,
+        lineas: textoConcatenado.split('\n').filter((l) => l.trim()).length,
+      },
     })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(err.status || 500).json({ error: err.message })
   }
 })
 
@@ -447,7 +557,7 @@ const colToLetter = (n) => {
 }
 
 // Genera un mapping IA de la plantilla → campos del sistema.
-// Lee la estructura Excel, la envía a Gemini, y devuelve el mapping.
+// Lee la estructura Excel, la envía al agente, y devuelve el mapping.
 const generateTemplateMapping = async (templateAbs) => {
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(templateAbs)
@@ -509,7 +619,7 @@ Reglas:
 - NO inventes campos que no existan en la plantilla
 - Responde SOLO con el JSON, sin texto adicional`
 
-  const text = await callGemini(prompt)
+  const text = await callAgente(prompt)
 
   let mapping
   try {
@@ -1663,7 +1773,7 @@ app.post('/api/clientes/:id/cobrar', async (req, res) => {
 })
 
 // --- Notas -----------------------------------------------------------------------
-// CRUD de notas diarias + conversión a visitas vía Gemini.
+// CRUD de notas diarias + conversión a visitas vía agente IA.
 
 const NOTAS_REL = 'notas/notas.json'
 
@@ -1818,9 +1928,9 @@ app.get('/api/usuario/foto-file', async (_req, res) => {
   }
 })
 
-// --- Gemini helper ----------------------------------------------------------------
-// Llama a la API de Gemini con un prompt y devuelve el texto de respuesta.
-const callGemini = async (prompt) => {
+// --- Agente helper ----------------------------------------------------------------
+// Llama a la API de IA con un prompt y devuelve el texto de respuesta.
+const callAgente = async (prompt) => {
   const apiKey = process.env.GEMINI_API_KEY || ''
   if (!apiKey) throw new Error('GEMINI_API_KEY no configurada en el servidor')
 
@@ -1843,7 +1953,7 @@ const callGemini = async (prompt) => {
 
   if (!response.ok) {
     const errBody = await response.text()
-    throw new Error(`Gemini API error ${response.status}: ${errBody}`)
+    throw new Error(`Agente API error ${response.status}: ${errBody}`)
   }
 
   const data = await response.json()
@@ -1852,7 +1962,7 @@ const callGemini = async (prompt) => {
   return text
 }
 
-// Convierte una nota a visitas usando Gemini.
+// Convierte una nota a visitas usando agente IA.
 // POST /api/notas/:id/convertir → { visitas: [...] }
 app.post('/api/notas/:id/convertir', express.json({ limit: '2mb' }), async (req, res) => {
   try {
@@ -1885,7 +1995,7 @@ ${nota.Contenido}
 
 Fecha de la nota: ${nota.Fecha}`
 
-    const text = await callGemini(prompt)
+    const text = await callAgente(prompt)
 
     // Extract JSON from response (may be wrapped in ```json ... ```)
     let visitas = []
@@ -1895,7 +2005,7 @@ Fecha de la nota: ${nota.Fecha}`
         visitas = JSON.parse(jsonMatch[0])
       }
     } catch {
-      throw new Error('No se pudo parsear la respuesta de Gemini como JSON de visitas')
+      throw new Error('No se pudo parsear la respuesta del agente como JSON de visitas')
     }
 
     // Normalize fields
@@ -1982,6 +2092,22 @@ app.post('/api/notas/:id/guardar-visitas', express.json({ limit: '5mb' }), async
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
+})
+
+// --- Frontend estático (build de producción) ---------------------------------
+
+// Sirve los archivos del build directamente (assets, fonts, icon, manifest...).
+app.use(express.static(DIST_DIR))
+
+// Fallback SPA: cualquier GET que no sea /api ni un archivo existente responde
+// index.html para que el router de Vue tome la ruta. Las rutas /api/* no
+// resueltas devuelven 404 JSON (nunca index.html, evitando el error de parseo).
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'No encontrado' })
+  }
+  res.sendFile(path.join(DIST_DIR, 'index.html'))
 })
 
 app.use((err, _req, res, _next) => {

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
 import VisitasView from '../views/VisitasView.vue'
 import ClientesView from '../views/ClientesView.vue'
@@ -17,6 +17,8 @@ const routes = [
 ]
 
 export default createRouter({
-  history: createWebHistory(),
+  // Hash history: las rutas funcionan en GitHub Pages con subpath sin
+  // necesidad de rewrites de servidor (el SPA shell se sirve siempre desde /).
+  history: createWebHashHistory(),
   routes,
 })

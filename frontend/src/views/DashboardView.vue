@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getClientes, getVisitas, getCobros, exportarExcel } from '../api.js'
+import { getClientes, getVisitas, getCobros, exportarDashboard } from '../api.js'
 import { guardarEnCarpetaPc } from '../utils/exportToFolder.js'
 import { dataVersion } from '../store.js'
 
@@ -201,6 +201,7 @@ const proximosCobros = computed(() => {
         name: c.Nombre,
         sub: [c.Zona, c.Tipo_Negocio].filter(Boolean).join(' · ') || c.Direccion || '',
         amount: c.Monto ? `$${Number(c.Monto).toLocaleString()}` : '',
+        monto: Number(c.Monto) || 0,
         date: formatFechaCorta(c.Fecha_Cobro),
         badge: diff <= 7 ? 'Vence pronto' : 'Pendiente',
         tone: diff <= 7 ? 'warning' : 'danger',
@@ -245,16 +246,32 @@ const goToClientes = () => router.push('/clientes')
 
 /* ── Exportar ── */
 const exportando = ref(false)
+const exportMsg = ref('')
 
 const doExport = async () => {
   exportando.value = true
   exportMsg.value = ''
   try {
-    const { blob, nombre } = await exportarExcel({
-      tipo: 'dashboard',
-      hoja: 'Dashboard',
-      columnas: ['Día', 'Visitas'],
-      filas: days.map((d, i) => ({ Día: d, Visitas: barData.value[i] })),
+    const { blob, nombre } = await exportarDashboard({
+      periodo: periods.find((p) => p.key === period.value)?.label || period.value,
+      stats: stats.value,
+      visitasDia: days.map((d, i) => ({ label: d, value: barData.value[i] })),
+      cobrado: cobradoData.value,
+      nuevos: nuevosData.value,
+      proximosCobros: proximosCobros.value.map((c) => ({
+        nombre: c.name,
+        detalle: c.sub,
+        monto: Number(c.monto) || 0,
+        date: c.date,
+        badge: c.badge,
+      })),
+      sinVisitar: clientesSinVisitar.value.map((c) => ({
+        nombre: c.Nombre,
+        zona: c.Zona || '',
+        tipo: c.Tipo_Negocio || '',
+        dias: c.daysSince === Infinity ? null : c.daysSince,
+      })),
+      visitasPeriodo: visitasPeriodo.value,
     })
     const guardado = await guardarEnCarpetaPc(blob, nombre)
     if (guardado.ok) exportMsg.value = `Guardado en ${guardado.carpeta}/${nombre}`

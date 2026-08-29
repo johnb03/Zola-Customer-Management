@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { getVisitas, getClientes, exportarVisitas, eliminarVisita, actualizarVisita, subirPlantillaReporte, getPlantillaReporte } from '../api.js'
+import { getVisitas, getClientes, exportarVisitas, eliminarVisita, actualizarVisita, getPlantillaReporte } from '../api.js'
 import { guardarEnCarpetaPc } from '../utils/exportToFolder.js'
 import { confirmar } from '../composables/useConfirm.js'
 import { alerta } from '../composables/useAlert.js'
@@ -57,9 +57,8 @@ const clientes = ref([])
 const cargando = ref(true)
 const descargando = ref(false)
 
-// Plantilla de reporte diario
+// Plantilla de reporte diario (se sube desde Datos — lectura aquí)
 const plantilla = ref(null)
-const subiendoPlantilla = ref(false)
 
 const cargarPlantilla = async () => {
   try {
@@ -67,22 +66,6 @@ const cargarPlantilla = async () => {
     plantilla.value = res.existe ? res : null
   } catch {
     plantilla.value = null
-  }
-}
-
-const subirPlantilla = async (event) => {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-  if (!file) return
-  subiendoPlantilla.value = true
-  try {
-    const res = await subirPlantillaReporte(file)
-    plantilla.value = res
-    alerta({ mensaje: res.nota, tipo: 'success' })
-  } catch (e) {
-    alerta({ titulo: 'Error', mensaje: `Error al subir la plantilla: ${e.message}`, tipo: 'error' })
-  } finally {
-    subiendoPlantilla.value = false
   }
 }
 
@@ -106,26 +89,29 @@ cargarGuardadas()
 const descargar = async () => {
   descargando.value = true
   try {
-    // 1. Pedir permiso de carpeta PRIMERO (síncrono con el click)
+    // 1. Build Excel blob (no download yet)
+    const { blob, nombre } = await exportarVisitas({
+      fecha: filtroFecha.value,
+      periodo: filtroPeriodo.value,
+      encabezado: { vendedor: encabezado.vendedor, zona_ruta: encabezado.zona_ruta, supervisor: encabezado.supervisor },
+    })
+
+    // 2. Try File System Access API (pick folder), fallback to browser download
     let dirHandle = null
     if (window.showDirectoryPicker) {
       try {
         dirHandle = await window.showDirectoryPicker()
       } catch (err) {
         if (err && err.name === 'AbortError') {
-          alerta({ mensaje: 'Descarga cancelada.', tipo: 'info' })
-          return
+          // User cancelled folder picker — fallback to normal download
+          dirHandle = null
+        } else {
+          throw err
         }
-        throw err
       }
     }
-    // 2. Exportar a Excel (enviar encabezado para que aparezca en la hoja)
-    const { blob, nombre } = await exportarVisitas({
-      fecha: filtroFecha.value,
-      periodo: filtroPeriodo.value,
-      encabezado: { vendedor: encabezado.vendedor, zona_ruta: encabezado.zona_ruta, supervisor: encabezado.supervisor },
-    })
-    // 3. Guardar en la carpeta elegida
+
+    // 3. Save to chosen folder or trigger browser download
     const guardado = await guardarEnCarpetaPc(blob, nombre, dirHandle)
     if (guardado.ok) alerta({ mensaje: `Copia Excel en ${guardado.carpeta}/${nombre}`, tipo: 'success' })
     else alerta({ mensaje: 'Se inició la descarga del Excel.', tipo: 'info' })
@@ -221,16 +207,12 @@ const guardarEdicion = async () => {
     <article class="card form-card">
       <div class="datos-header">
         <h2 class="panel-title">Datos del reporte</h2>
-        <p class="chat-subtitle">Subí la plantilla Excel de tu reporte diario para que el agente la conozca. El encabezado se usa al guardar y exportar.</p>
+        <p class="chat-subtitle">La plantilla Excel del reporte diario se sube desde la pestaña Datos. El encabezado se usa al guardar y exportar.</p>
       </div>
 
       <div class="plantilla-row">
         <span class="field-label">Plantilla de reporte diario (.xlsx)</span>
         <div class="plantilla-controls">
-          <label class="btn btn-ghost btn-sm">
-            {{ subiendoPlantilla ? 'Subiendo…' : (plantilla ? 'Cambiar plantilla' : 'Subir plantilla') }}
-            <input type="file" accept=".xlsx,.xls" class="file-input" @change="subirPlantilla" />
-          </label>
           <span v-if="plantilla" class="plantilla-ok">
             ✓ {{ plantilla.archivo }} · {{ plantilla.columnas?.length || 0 }} columnas
           </span>

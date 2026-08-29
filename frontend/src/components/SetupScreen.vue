@@ -1,80 +1,76 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { hasGeminiKey, setGeminiKey, testGeminiKey } from '../gemini.js'
-import { db } from '../db.js'
+import { ref, computed, onMounted } from 'vue'
+import { PROVIDERS, hasAgenteConfig, setAgenteConfig, getAgenteConfig, testAgenteKey } from '../agente.js'
 
 const emit = defineEmits(['configured'])
 
+const provider = ref('gemini')
+const model = ref('')
 const apiKey = ref('')
+const baseUrl = ref('')
 const testing = ref(false)
 const error = ref('')
 const showSetup = ref(false)
 
-onMounted(async () => {
-  // Show setup if no API key configured
-  showSetup.value = !hasGeminiKey()
+onMounted(() => {
+  const config = getAgenteConfig()
+  showSetup.value = !hasAgenteConfig()
+  if (config.provider) provider.value = config.provider
+  if (config.model) model.value = config.model
+  else model.value = PROVIDERS[config.provider]?.models?.[0] || ''
 })
 
-const saveKey = async () => {
+const isCustom = computed(() => provider.value === 'custom')
+const providerModels = computed(() => PROVIDERS[provider.value]?.models || [])
+
+const providerLinks = {
+  gemini: { text: 'Obtener key en Google AI Studio', url: 'https://aistudio.google.com/apikey' },
+  claude: { text: 'Obtener key en console.anthropic.com', url: 'https://console.anthropic.com/settings/keys' },
+  openai: { text: 'Obtener key en platform.openai.com', url: 'https://platform.openai.com/api-keys' },
+  deepseek: { text: 'Obtener key en platform.deepseek.com', url: 'https://platform.deepseek.com/api_keys' },
+}
+
+const currentLink = computed(() => providerLinks[provider.value] || null)
+
+const onProviderChange = () => {
+  model.value = PROVIDERS[provider.value]?.models?.[0] || ''
+  baseUrl.value = ''
+  error.value = ''
+}
+
+const saveConfig = async () => {
   if (!apiKey.value.trim()) {
-    error.value = 'Ingresa tu API key de Gemini'
+    error.value = 'Ingresa tu API key'
     return
   }
+  if (!model.value.trim()) {
+    error.value = 'Ingresa el nombre del modelo'
+    return
+  }
+  if (isCustom.value && !baseUrl.value.trim()) {
+    error.value = 'Ingresa la URL base del proveedor'
+    return
+  }
+
   testing.value = true
   error.value = ''
-  setGeminiKey(apiKey.value.trim())
-  const valid = await testGeminiKey()
+
+  setAgenteConfig({
+    provider: provider.value,
+    apiKey: apiKey.value.trim(),
+    model: model.value.trim(),
+    baseUrl: baseUrl.value.trim(),
+  })
+
+  const valid = await testAgenteKey()
   testing.value = false
+
   if (valid) {
     showSetup.value = false
     emit('configured')
   } else {
     error.value = 'API key inválida. Verifica que sea correcta.'
-    setGeminiKey('')
-  }
-}
-
-// --- Data migration from server ---
-const importando = ref(false)
-const importError = ref('')
-const importSuccess = ref('')
-
-const importarDatos = async () => {
-  importando.value = true
-  importError.value = ''
-  importSuccess.value = ''
-  try {
-    const res = await fetch('/api/estado')
-    if (!res.ok) throw new Error('No se pudo conectar al servidor')
-    const estado = await res.json()
-
-    // Fetch all data from server
-    const [clientes, visitas, notas, citas, cobros, usuario, catalogo] = await Promise.all([
-      fetch('/api/clientes').then((r) => r.json()).catch(() => []),
-      fetch('/api/visitas').then((r) => r.json()).catch(() => []),
-      fetch('/api/notas').then((r) => r.json()).catch(() => []),
-      fetch('/api/citas').then((r) => r.json()).catch(() => []),
-      fetch('/api/cobros').then((r) => r.json()).catch(() => []),
-      fetch('/api/usuario').then((r) => r.json()).catch(() => null),
-      fetch('/api/catalogo').then((r) => r.json()).catch(() => null),
-    ])
-
-    // Import into IndexedDB
-    const result = await db.importAll({
-      clientes,
-      visitas,
-      notas,
-      citas,
-      cobros,
-      usuario,
-      catalogo,
-    })
-
-    importSuccess.value = `Importados: ${Object.entries(result).map(([k, v]) => `${k}: ${v}`).join(', ')}`
-  } catch (e) {
-    importError.value = e.message
-  } finally {
-    importando.value = false
+    setAgenteConfig({ apiKey: '' })
   }
 }
 </script>
@@ -90,43 +86,57 @@ const importarDatos = async () => {
         </svg>
       </div>
       <h1 class="setup-title">Bienvenido a Zola</h1>
-      <p class="setup-desc">Configurá tu API key de Gemini para empezar.</p>
+      <p class="setup-desc">Configurá tu agente de IA para empezar.</p>
 
+      <!-- Provider -->
       <div class="setup-field">
-        <label class="setup-label">API Key de Google Gemini</label>
+        <label class="setup-label">Proveedor del agente</label>
+        <select v-model="provider" class="setup-input" @change="onProviderChange">
+          <option v-for="(p, key) in PROVIDERS" :key="key" :value="key">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <!-- Model -->
+      <div class="setup-field">
+        <label class="setup-label">Modelo</label>
+        <select v-if="providerModels.length" v-model="model" class="setup-input">
+          <option v-for="m in providerModels" :key="m" :value="m">{{ m }}</option>
+        </select>
+        <input v-else v-model="model" class="setup-input" placeholder="Nombre del modelo (ej: gpt-4o)" />
+      </div>
+
+      <!-- API Key -->
+      <div class="setup-field">
+        <label class="setup-label">API Key</label>
         <input
           v-model="apiKey"
           type="password"
           class="setup-input"
-          placeholder="AIza..."
-          @keyup.enter="saveKey"
+          placeholder="Tu key del proveedor..."
+          @keyup.enter="saveConfig"
         />
-        <p v-if="error" class="setup-error">{{ error }}</p>
       </div>
 
-      <button class="setup-btn" @click="saveKey" :disabled="testing">
+      <!-- Base URL (custom only) -->
+      <div v-if="isCustom" class="setup-field">
+        <label class="setup-label">Base URL</label>
+        <input
+          v-model="baseUrl"
+          class="setup-input"
+          placeholder="https://api.ejemplo.com"
+        />
+      </div>
+
+      <p v-if="error" class="setup-error">{{ error }}</p>
+
+      <button class="setup-btn" @click="saveConfig" :disabled="testing">
         {{ testing ? 'Verificando...' : 'Continuar' }}
       </button>
 
-      <p class="setup-hint">
-        Conseguí tu key en
-        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>
+      <p v-if="currentLink" class="setup-hint">
+        <a :href="currentLink.url" target="_blank" rel="noopener">{{ currentLink.text }}</a>
       </p>
     </div>
-  </div>
-
-  <!-- Data migration dialog -->
-  <div v-if="!showSetup" class="migrate-section">
-    <button
-      v-if="!importSuccess"
-      class="migrate-btn"
-      @click="importarDatos"
-      :disabled="importando"
-    >
-      {{ importando ? 'Importando...' : 'Importar datos del servidor' }}
-    </button>
-    <p v-if="importSuccess" class="migrate-success">{{ importSuccess }}</p>
-    <p v-if="importError" class="migrate-error">{{ importError }}</p>
   </div>
 </template>
 
@@ -173,7 +183,7 @@ const importarDatos = async () => {
 
 .setup-field {
   text-align: left;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .setup-label {
@@ -229,37 +239,4 @@ const importarDatos = async () => {
   margin: 16px 0 0;
 }
 .setup-hint a { color: var(--accent-gold); text-decoration: none; }
-
-/* Migration section */
-.migrate-section {
-  padding: 16px 24px;
-}
-
-.migrate-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-family: 'Satoshi', sans-serif;
-  font-size: 13px;
-  cursor: pointer;
-  transition: color 120ms;
-}
-.migrate-btn:hover { color: var(--text-primary); border-color: var(--accent-gold); }
-.migrate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.migrate-success {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 13px;
-  color: var(--status-success);
-  margin: 8px 0 0;
-}
-
-.migrate-error {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 13px;
-  color: var(--status-danger);
-  margin: 8px 0 0;
-}
 </style>
