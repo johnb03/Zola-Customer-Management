@@ -1,0 +1,4 @@
+allowBuilds:
+  tesseract.js: true
+minimumReleaseAgeExclude:
+  - pdfjs-dist@6.3.289
