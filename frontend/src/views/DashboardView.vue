@@ -861,5 +861,53 @@ const doExport = async () => {
   .cobro-right {
     flex-wrap: wrap;
   }
+
+  .stat-card {
+    padding: 20px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+  }
+
+  .chip {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-height: var(--touch-min);
+  }
+
+  .btn-export {
+    font-size: 15px;
+    padding: 12px 20px;
+  }
+
+  .cobro-row {
+    padding: 14px 16px;
+  }
+
+  .cobro-name {
+    font-size: 15px;
+  }
+
+  .cobro-sub {
+    font-size: 13px;
+  }
+
+  .cobro-amount {
+    font-size: 17px;
+  }
+
+  .cobro-date {
+    font-size: 13px;
+  }
+
+  .badge {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .chart-title {
+    font-size: 17px;
+  }
 }
 </style>

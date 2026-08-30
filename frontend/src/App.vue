@@ -39,12 +39,16 @@ const onConfigured = () => {
 .app-shell {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .main {
   flex: 1;
   min-width: 0;
   padding: 32px 40px 48px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {
@@ -53,7 +57,7 @@ const onConfigured = () => {
   }
 
   .main {
-    padding: 20px 16px 96px;
+    padding: 20px 16px calc(84px + env(safe-area-inset-bottom, 0px));
   }
 }
 </style>

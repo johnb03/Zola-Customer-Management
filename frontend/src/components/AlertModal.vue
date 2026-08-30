@@ -237,4 +237,32 @@ const onBackdrop = (e) => {
   transform: scale(0.97);
   opacity: 0;
 }
+
+/* Bottom sheet on small screens */
+@media (max-width: 480px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    animation: sheetUp 240ms ease;
+  }
+
+  .alert-btn {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(40px); opacity: 0.4; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
 </style>

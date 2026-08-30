@@ -1,182 +1,221 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import { getVisitas, getClientes, exportarVisitas, eliminarVisita, actualizarVisita, getPlantillaReporte } from '../api.js'
-import { guardarEnCarpetaPc } from '../utils/exportToFolder.js'
-import { confirmar } from '../composables/useConfirm.js'
-import { alerta } from '../composables/useAlert.js'
+import { ref, reactive, computed, watch } from "vue";
+import {
+  getVisitas,
+  getClientes,
+  exportarVisitas,
+  eliminarVisita,
+  actualizarVisita,
+  getPlantillaReporte,
+} from "../api.js";
+import { guardarEnCarpetaPc } from "../utils/exportToFolder.js";
+import { confirmar } from "../composables/useConfirm.js";
+import { alerta } from "../composables/useAlert.js";
 
 const hoy = () => {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
 
 // Encabezado con persistencia en localStorage
-const STORAGE_KEY_ENC = 'zola-visitas-encabezado'
+const STORAGE_KEY_ENC = "zola-visitas-encabezado";
 const loadEncabezado = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_ENC)
-    if (raw) return JSON.parse(raw)
+    const raw = localStorage.getItem(STORAGE_KEY_ENC);
+    if (raw) return JSON.parse(raw);
   } catch {}
-  return {}
-}
-const saved = loadEncabezado()
+  return {};
+};
+const saved = loadEncabezado();
 const encabezado = reactive({
-  vendedor: saved.vendedor || '',
-  zona_ruta: saved.zona_ruta || '',
-  supervisor: saved.supervisor || '',
+  vendedor: saved.vendedor || "",
+  zona_ruta: saved.zona_ruta || "",
+  supervisor: saved.supervisor || "",
   fecha: hoy(), // siempre hoy, ignorar localStorage
-})
+});
 
 // Guardar encabezado en localStorage cuando cambia (excepto fecha)
-watch(encabezado, (val) => {
-  localStorage.setItem(STORAGE_KEY_ENC, JSON.stringify({
-    vendedor: val.vendedor,
-    zona_ruta: val.zona_ruta,
-    supervisor: val.supervisor,
-  }))
-}, { deep: true })
+watch(
+  encabezado,
+  (val) => {
+    localStorage.setItem(
+      STORAGE_KEY_ENC,
+      JSON.stringify({
+        vendedor: val.vendedor,
+        zona_ruta: val.zona_ruta,
+        supervisor: val.supervisor,
+      }),
+    );
+  },
+  { deep: true },
+);
 
 // Filtro de exportación
-const filtroPeriodo = ref('dia')
-const filtroFecha = ref(encabezado.fecha)
+const filtroPeriodo = ref("dia");
+const filtroFecha = ref(encabezado.fecha);
 
 // Visitas filtradas — misma lógica que el server export
-const guardadas = ref([])
+const guardadas = ref([]);
 const visitasVisibles = computed(() => {
-  const fecha = String(filtroFecha.value || '')
-  if (!fecha) return guardadas.value
+  const fecha = String(filtroFecha.value || "");
+  if (!fecha) return guardadas.value;
   return guardadas.value.filter((v) => {
-    const f = String(v.Fecha || '').slice(0, 10)
-    if (filtroPeriodo.value === 'anio') return f.startsWith(fecha.slice(0, 4))
-    if (filtroPeriodo.value === 'mes') return f.startsWith(fecha.slice(0, 7))
-    return f === fecha
-  })
-})
-const clientes = ref([])
-const cargando = ref(true)
-const descargando = ref(false)
+    const f = String(v.Fecha || "").slice(0, 10);
+    if (filtroPeriodo.value === "anio") return f.startsWith(fecha.slice(0, 4));
+    if (filtroPeriodo.value === "mes") return f.startsWith(fecha.slice(0, 7));
+    return f === fecha;
+  });
+});
+const clientes = ref([]);
+const cargando = ref(true);
+const descargando = ref(false);
 
 // Plantilla de reporte diario (se sube desde Datos — lectura aquí)
-const plantilla = ref(null)
+const plantilla = ref(null);
 
 const cargarPlantilla = async () => {
   try {
-    const res = await getPlantillaReporte()
-    plantilla.value = res.existe ? res : null
+    const res = await getPlantillaReporte();
+    plantilla.value = res.existe ? res : null;
   } catch {
-    plantilla.value = null
+    plantilla.value = null;
   }
-}
+};
 
-cargarPlantilla()
+cargarPlantilla();
 
 const cargarGuardadas = async () => {
-  cargando.value = true
+  cargando.value = true;
   try {
-    const [v, c] = await Promise.all([getVisitas(), getClientes()])
-    guardadas.value = v
-    clientes.value = c
+    const [v, c] = await Promise.all([getVisitas(), getClientes()]);
+    guardadas.value = v;
+    clientes.value = c;
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    cargando.value = false
+    cargando.value = false;
   }
-}
+};
 
-cargarGuardadas()
+cargarGuardadas();
 
 const descargar = async () => {
-  descargando.value = true
+  descargando.value = true;
   try {
     // 1. Build Excel blob (no download yet)
     const { blob, nombre } = await exportarVisitas({
       fecha: filtroFecha.value,
       periodo: filtroPeriodo.value,
-      encabezado: { vendedor: encabezado.vendedor, zona_ruta: encabezado.zona_ruta, supervisor: encabezado.supervisor },
-    })
+      encabezado: {
+        vendedor: encabezado.vendedor,
+        zona_ruta: encabezado.zona_ruta,
+        supervisor: encabezado.supervisor,
+      },
+    });
 
     // 2. Try File System Access API (pick folder), fallback to browser download
-    let dirHandle = null
+    let dirHandle = null;
     if (window.showDirectoryPicker) {
       try {
-        dirHandle = await window.showDirectoryPicker()
+        dirHandle = await window.showDirectoryPicker();
       } catch (err) {
-        if (err && err.name === 'AbortError') {
+        if (err && err.name === "AbortError") {
           // User cancelled folder picker — fallback to normal download
-          dirHandle = null
+          dirHandle = null;
         } else {
-          throw err
+          throw err;
         }
       }
     }
 
     // 3. Save to chosen folder or trigger browser download
-    const guardado = await guardarEnCarpetaPc(blob, nombre, dirHandle)
-    if (guardado.ok) alerta({ mensaje: `Copia Excel en ${guardado.carpeta}/${nombre}`, tipo: 'success' })
-    else alerta({ mensaje: 'Se inició la descarga del Excel.', tipo: 'info' })
+    const guardado = await guardarEnCarpetaPc(blob, nombre, dirHandle);
+    if (guardado.ok)
+      alerta({
+        mensaje: `Copia Excel en ${guardado.carpeta}/${nombre}`,
+        tipo: "success",
+      });
+    else alerta({ mensaje: "Se inició la descarga del Excel.", tipo: "info" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    descargando.value = false
+    descargando.value = false;
   }
-}
+};
 
 const eliminar = async (g) => {
-  const msgConfirmacion = `¿Eliminar la visita de "${g.Establecimiento}" (${g.Fecha})?${g.Origen === 'visita' ? '\nTambién se eliminará la cita de seguimiento vinculada.' : ''}`
-  const ok = await confirmar({ titulo: 'Eliminar visita', mensaje: msgConfirmacion })
-  if (!ok) return
+  const msgConfirmacion = `¿Eliminar la visita de "${g.Establecimiento}" (${g.Fecha})?${g.Origen === "visita" ? "\nTambién se eliminará la cita de seguimiento vinculada." : ""}`;
+  const ok = await confirmar({
+    titulo: "Eliminar visita",
+    mensaje: msgConfirmacion,
+  });
+  if (!ok) return;
   try {
-    await eliminarVisita(g.ID_Visita)
-    alerta({ mensaje: `Visita de "${g.Establecimiento}" eliminada.`, tipo: 'success' })
-    await cargarGuardadas()
+    await eliminarVisita(g.ID_Visita);
+    alerta({
+      mensaje: `Visita de "${g.Establecimiento}" eliminada.`,
+      tipo: "success",
+    });
+    await cargarGuardadas();
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: `Error al eliminar: ${e.message}`, tipo: 'error' })
+    alerta({
+      titulo: "Error",
+      mensaje: `Error al eliminar: ${e.message}`,
+      tipo: "error",
+    });
   }
-}
+};
 
 /* ── Editar visita ── */
-const editandoVisita = ref(null)
+const editandoVisita = ref(null);
 const edicion = reactive({
-  Establecimiento: '',
-  Fecha: '',
-  Hora_Visita: '',
-  Persona_Contactada: '',
-  Pedido: '',
-  Proximo_Paso: '',
-  Detalle_Pedido: '',
-  Monto: '',
-  Comentarios: '',
-})
+  Establecimiento: "",
+  Fecha: "",
+  Hora_Visita: "",
+  Persona_Contactada: "",
+  Pedido: "",
+  Proximo_Paso: "",
+  Detalle_Pedido: "",
+  Monto: "",
+  Comentarios: "",
+});
 
 const abrirEditar = (g) => {
-  editandoVisita.value = g.ID_Visita
-  edicion.Establecimiento = g.Establecimiento || ''
-  edicion.Fecha = g.Fecha || ''
-  edicion.Hora_Visita = g.Hora_Visita || ''
-  edicion.Persona_Contactada = g.Persona_Contactada || ''
-  edicion.Pedido = g.Pedido || ''
-  edicion.Proximo_Paso = g.Proximo_Paso || ''
-  edicion.Detalle_Pedido = g.Detalle_Pedido || ''
-  edicion.Monto = g.Monto ?? ''
-  edicion.Comentarios = g.Comentarios || ''
-}
+  editandoVisita.value = g.ID_Visita;
+  edicion.Establecimiento = g.Establecimiento || "";
+  edicion.Fecha = g.Fecha || "";
+  edicion.Hora_Visita = g.Hora_Visita || "";
+  edicion.Persona_Contactada = g.Persona_Contactada || "";
+  edicion.Pedido = g.Pedido || "";
+  edicion.Proximo_Paso = g.Proximo_Paso || "";
+  edicion.Detalle_Pedido = g.Detalle_Pedido || "";
+  edicion.Monto = g.Monto ?? "";
+  edicion.Comentarios = g.Comentarios || "";
+};
 
 const cancelarEdicion = () => {
-  editandoVisita.value = null
-}
+  editandoVisita.value = null;
+};
 
 const guardarEdicion = async () => {
-  if (!editandoVisita.value) return
+  if (!editandoVisita.value) return;
   try {
-    await actualizarVisita(editandoVisita.value, { ...edicion })
-    alerta({ mensaje: `Visita de "${edicion.Establecimiento}" actualizada.`, tipo: 'success' })
-    editandoVisita.value = null
-    await cargarGuardadas()
+    await actualizarVisita(editandoVisita.value, { ...edicion });
+    alerta({
+      mensaje: `Visita de "${edicion.Establecimiento}" actualizada.`,
+      tipo: "success",
+    });
+    editandoVisita.value = null;
+    await cargarGuardadas();
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: `Error al actualizar: ${e.message}`, tipo: 'error' })
+    alerta({
+      titulo: "Error",
+      mensaje: `Error al actualizar: ${e.message}`,
+      tipo: "error",
+    });
   }
-}
+};
 </script>
 
 <template>
@@ -185,7 +224,8 @@ const guardarEdicion = async () => {
       <div class="header-text">
         <h1 class="section-title">Reporte de Visitas</h1>
         <p class="section-subtitle">
-          Registro diario de visitas a clientes. El estatus en "Próximo Paso" actualiza el embudo del cliente.
+          Registro diario de visitas a clientes. El estatus en "Próximo Paso"
+          actualiza el embudo del cliente.
         </p>
       </div>
       <div class="header-actions">
@@ -197,8 +237,17 @@ const guardarEdicion = async () => {
           </select>
           <input v-model="filtroFecha" class="input input-sm" type="date" />
         </div>
-        <button type="button" class="btn" :disabled="descargando || !visitasVisibles.length" @click="descargar">
-          {{ descargando ? 'Exportando…' : `Descargar Excel (${visitasVisibles.length})` }}
+        <button
+          type="button"
+          class="btn"
+          :disabled="descargando || !visitasVisibles.length"
+          @click="descargar"
+        >
+          {{
+            descargando
+              ? "Exportando…"
+              : `Descargar Excel (${visitasVisibles.length})`
+          }}
         </button>
       </div>
     </header>
@@ -207,31 +256,53 @@ const guardarEdicion = async () => {
     <article class="card form-card">
       <div class="datos-header">
         <h2 class="panel-title">Datos del reporte</h2>
-        <p class="chat-subtitle">La plantilla Excel del reporte diario se sube desde la pestaña Datos. El encabezado se usa al guardar y exportar.</p>
+        <p class="chat-subtitle">
+          La plantilla Excel del reporte diario se sube desde la pestaña Datos.
+          El encabezado se usa al guardar y exportar.
+        </p>
       </div>
 
       <div class="plantilla-row">
         <span class="field-label">Plantilla de reporte diario (.xlsx)</span>
         <div class="plantilla-controls">
           <span v-if="plantilla" class="plantilla-ok">
-            ✓ {{ plantilla.archivo }} · {{ plantilla.columnas?.length || 0 }} columnas
+            ✓ {{ plantilla.archivo }} ·
+            {{ plantilla.columnas?.length || 0 }} columnas
           </span>
-          <span v-else class="plantilla-warn">Sin plantilla — el agente usa la estructura estándar de visitas.</span>
+          <span v-else class="plantilla-warn"
+            >Sin plantilla — el agente usa la estructura estándar de
+            visitas.</span
+          >
         </div>
       </div>
 
       <div class="encabezado-grid">
         <label class="field">
           <span class="field-label">Vendedor</span>
-          <input v-model="encabezado.vendedor" class="input" type="text" placeholder="Nombre del vendedor" />
+          <input
+            v-model="encabezado.vendedor"
+            class="input"
+            type="text"
+            placeholder="Nombre del vendedor"
+          />
         </label>
         <label class="field">
           <span class="field-label">Zona / Ruta</span>
-          <input v-model="encabezado.zona_ruta" class="input" type="text" placeholder="Zona o ruta" />
+          <input
+            v-model="encabezado.zona_ruta"
+            class="input"
+            type="text"
+            placeholder="Zona o ruta"
+          />
         </label>
         <label class="field">
           <span class="field-label">Supervisor</span>
-          <input v-model="encabezado.supervisor" class="input" type="text" placeholder="Supervisor" />
+          <input
+            v-model="encabezado.supervisor"
+            class="input"
+            type="text"
+            placeholder="Supervisor"
+          />
         </label>
         <label class="field">
           <span class="field-label">Fecha</span>
@@ -241,7 +312,15 @@ const guardarEdicion = async () => {
     </article>
 
     <article class="card panel guardadas">
-      <h2 class="panel-title">Visitas guardadas <span v-if="!cargando" class="visitas-count">({{ visitasVisibles.length }}<template v-if="visitasVisibles.length !== guardadas.length"> de {{ guardadas.length }}</template>)</span></h2>
+      <h2 class="panel-title">
+        Visitas guardadas
+        <span v-if="!cargando" class="visitas-count"
+          >({{ visitasVisibles.length
+          }}<template v-if="visitasVisibles.length !== guardadas.length">
+            de {{ guardadas.length }}</template
+          >)</span
+        >
+      </h2>
       <p v-if="cargando" class="loading">Cargando datos reales…</p>
       <div v-else class="table-wrap">
         <table class="table table-guardadas">
@@ -257,10 +336,15 @@ const guardarEdicion = async () => {
           </thead>
           <tbody>
             <tr v-if="!guardadas.length">
-              <td colspan="6" class="empty-cell">Todavía no hay visitas guardadas.</td>
+              <td colspan="6" class="empty-cell">
+                Todavía no hay visitas guardadas.
+              </td>
             </tr>
             <tr v-else-if="!visitasVisibles.length">
-              <td colspan="6" class="empty-cell">Sin visitas para el filtro seleccionado. Cambiá la fecha o el período arriba.</td>
+              <td colspan="6" class="empty-cell">
+                Sin visitas para el filtro seleccionado. Cambiá la fecha o el
+                período arriba.
+              </td>
             </tr>
             <tr v-for="g in visitasVisibles" :key="g.ID_Visita">
               <td class="cell-main">{{ g.Establecimiento }}</td>
@@ -269,8 +353,22 @@ const guardarEdicion = async () => {
               <td>{{ g.Pedido }}</td>
               <td class="cell-sub">{{ g.Proximo_Paso }}</td>
               <td class="cell-remove">
-                <button type="button" class="remove-btn edit-btn" title="Editar visita" @click="abrirEditar(g)">✏️</button>
-                <button type="button" class="remove-btn" title="Eliminar visita" @click="eliminar(g)">✕</button>
+                <button
+                  type="button"
+                  class="remove-btn edit-btn"
+                  title="Editar visita"
+                  @click="abrirEditar(g)"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  class="remove-btn"
+                  title="Eliminar visita"
+                  @click="eliminar(g)"
+                >
+                  ✕
+                </button>
               </td>
             </tr>
           </tbody>
@@ -281,18 +379,48 @@ const guardarEdicion = async () => {
     <!-- Modal editar visita -->
     <Teleport to="body">
       <Transition name="modal">
-        <div v-if="editandoVisita" class="edit-backdrop" @click.self="cancelarEdicion">
-          <div class="edit-card" role="dialog" aria-modal="true" aria-label="Editar visita">
+        <div
+          v-if="editandoVisita"
+          class="edit-backdrop"
+          @click.self="cancelarEdicion"
+        >
+          <div
+            class="edit-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Editar visita"
+          >
             <div class="edit-header">
               <h3 class="edit-title">Editar visita</h3>
-              <button type="button" class="btn-icon" title="Cerrar" @click="cancelarEdicion">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <button
+                type="button"
+                class="btn-icon"
+                title="Cerrar"
+                @click="cancelarEdicion"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             </div>
             <div class="edit-body">
               <label class="field">
                 <span class="field-label">Establecimiento</span>
-                <input v-model="edicion.Establecimiento" type="text" class="input" />
+                <input
+                  v-model="edicion.Establecimiento"
+                  type="text"
+                  class="input"
+                />
               </label>
               <div class="edit-grid">
                 <label class="field">
@@ -301,12 +429,21 @@ const guardarEdicion = async () => {
                 </label>
                 <label class="field">
                   <span class="field-label">Hora</span>
-                  <input v-model="edicion.Hora_Visita" type="time" class="input" />
+                  <input
+                    v-model="edicion.Hora_Visita"
+                    type="time"
+                    class="input"
+                  />
                 </label>
               </div>
               <label class="field">
                 <span class="field-label">Persona contactada</span>
-                <input v-model="edicion.Persona_Contactada" type="text" class="input" placeholder="Nombre de la persona" />
+                <input
+                  v-model="edicion.Persona_Contactada"
+                  type="text"
+                  class="input"
+                  placeholder="Nombre de la persona"
+                />
               </label>
               <div class="edit-grid">
                 <label class="field">
@@ -330,20 +467,49 @@ const guardarEdicion = async () => {
               </div>
               <label class="field">
                 <span class="field-label">Detalle del pedido</span>
-                <textarea v-model="edicion.Detalle_Pedido" class="input" rows="2" placeholder="Productos solicitados"></textarea>
+                <textarea
+                  v-model="edicion.Detalle_Pedido"
+                  class="input"
+                  rows="2"
+                  placeholder="Productos solicitados"
+                ></textarea>
               </label>
               <label class="field">
                 <span class="field-label">Monto ($)</span>
-                <input v-model="edicion.Monto" type="number" min="0" step="0.01" class="input" placeholder="Monto de la venta / cobro" />
+                <input
+                  v-model="edicion.Monto"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="input"
+                  placeholder="Monto de la venta / cobro"
+                />
               </label>
               <label class="field">
                 <span class="field-label">Comentarios</span>
-                <textarea v-model="edicion.Comentarios" class="input" rows="2" placeholder="Notas de la visita"></textarea>
+                <textarea
+                  v-model="edicion.Comentarios"
+                  class="input"
+                  rows="2"
+                  placeholder="Notas de la visita"
+                ></textarea>
               </label>
             </div>
             <div class="edit-footer">
-              <button type="button" class="btn btn-ghost btn-sm" @click="cancelarEdicion">Cancelar</button>
-              <button type="button" class="btn btn-gold-outline btn-sm" @click="guardarEdicion">Guardar cambios</button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                @click="cancelarEdicion"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-gold-outline btn-sm"
+                @click="guardarEdicion"
+              >
+                Guardar cambios
+              </button>
             </div>
           </div>
         </div>
@@ -358,7 +524,7 @@ const guardarEdicion = async () => {
   font-size: 14px;
 }
 
-/* Header con título a la izquierda y acciones a la derecha */
+/* Header con título a la izquierda y acciones a la derechaat*/
 .header-split {
   display: flex;
   align-items: flex-start;
@@ -494,13 +660,13 @@ const guardarEdicion = async () => {
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .table th {
   text-align: left;
   padding: 10px 8px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -510,7 +676,7 @@ const guardarEdicion = async () => {
 }
 
 .table td {
-  padding: 12px 8px;
+  padding: 14px 10px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -530,9 +696,10 @@ const guardarEdicion = async () => {
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 13px;
+  padding: 12px 12px;
+  font-size: 15px;
   font-family: inherit;
+  min-height: 46px;
 }
 
 .cell-input:focus {
@@ -557,7 +724,9 @@ const guardarEdicion = async () => {
   font-size: 12px;
   line-height: 1;
   padding: 6px 8px;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .remove-btn:hover {
@@ -661,7 +830,9 @@ const guardarEdicion = async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 120ms ease, border-color 120ms ease;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .btn-icon:hover {
@@ -700,7 +871,9 @@ const guardarEdicion = async () => {
 
 .modal-enter-active .edit-card,
 .modal-leave-active .edit-card {
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .modal-enter-from,
@@ -729,7 +902,7 @@ const guardarEdicion = async () => {
 
 .chat-subtitle {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-secondary);
   line-height: 1.45;
 }
@@ -777,6 +950,14 @@ const guardarEdicion = async () => {
   .plantilla-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+/* Mobile: bigger touch targets for actions */
+@media (max-width: 768px) {
+  .btn,
+  .btn-sm {
+    min-height: 48px;
   }
 }
 </style>

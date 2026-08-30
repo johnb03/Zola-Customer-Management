@@ -211,3 +211,31 @@ a {
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Mobile type-scale & base rules ─────────────────────────── */
+
+:root {
+  /* Minimum touch target size (Apple HIG / Material). */
+  --touch-min: 48px;
+}
+
+/* Remove the gray tap highlight flash on touch devices. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent rubber-band overscroll on the whole document. */
+html {
+  overscroll-behavior-y: none;
+}
+
+/* Disable double-tap-to-zoom on interactive controls. */
+button,
+.btn,
+.chip,
+.input,
+select,
+textarea,
+[role='button'] {
+  touch-action: manipulation;
+}

@@ -805,7 +805,11 @@ const onAnalisisDone = () => {
   }
 
   .stat-value {
-    font-size: 20px;
+    font-size: 26px;
+  }
+
+  .stat-label {
+    font-size: 14px;
   }
 
   .grid-2 {
@@ -813,7 +817,7 @@ const onAnalisisDone = () => {
   }
 
   .upload-card {
-    padding: 12px 14px;
+    padding: 16px;
   }
 
   .upload-desc {
@@ -823,7 +827,14 @@ const onAnalisisDone = () => {
   .firma { margin-bottom: 20px; }
 
   .panel {
-    padding: 14px;
+    padding: 16px;
+  }
+
+  /* Bigger touch targets for file actions on mobile */
+  .btn-action,
+  .upload-btn {
+    min-height: 48px;
+    font-size: 15px;
   }
 }
 </style>

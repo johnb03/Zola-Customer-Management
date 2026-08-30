@@ -1236,7 +1236,40 @@ const badgeClass = (status) => {
   .lista-panel {
     width: 100%;
     min-width: 100%;
-    max-height: 500px;
+    max-height: 440px;
+  }
+
+  .btn-action-gold,
+  .btn-action-ruta {
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+
+  .lista-title {
+    font-size: 22px;
+  }
+
+  .lista-row {
+    padding: 16px 10px;
+  }
+
+  .row-name {
+    font-size: 15px;
+  }
+
+  .row-sub {
+    font-size: 13px;
+  }
+
+  .summary-value {
+    font-size: 28px;
+  }
+
+  .ficha-address,
+  .section-empty,
+  .file-name,
+  .field-label {
+    font-size: 14px;
   }
 
   .lista-actions {

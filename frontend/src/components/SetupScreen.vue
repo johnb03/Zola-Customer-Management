@@ -239,4 +239,29 @@ const saveConfig = async () => {
   margin: 16px 0 0;
 }
 .setup-hint a { color: var(--accent-gold); text-decoration: none; }
+
+/* Full-bleed bottom sheet on small screens */
+@media (max-width: 480px) {
+  .setup-overlay {
+    align-items: flex-end;
+  }
+
+  .setup-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    padding: 24px 20px;
+  }
+
+  .setup-input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .setup-btn {
+    min-height: 48px;
+    font-size: 16px;
+  }
+}
 </style>

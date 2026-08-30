@@ -852,4 +852,45 @@ const close = () => {
     text-align: center;
   }
 }
+
+/* Bottom sheet on small screens */
+@media (max-width: 480px) {
+  .config-overlay {
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  .config-panel {
+    width: 100%;
+    height: 100%;
+    max-height: 92dvh;
+    border-left: none;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    animation: configSheetUp 240ms ease;
+  }
+
+  .config-tab {
+    min-height: 48px;
+  }
+
+  .config-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .field-input,
+  .photo-btn,
+  .backup-btn,
+  .reset-btn,
+  .save-btn {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  @keyframes configSheetUp {
+    from { transform: translateY(40px); opacity: 0.4; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
 </style>

@@ -394,7 +394,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 12px 16px;
+    padding: 16px 16px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
     background: transparent;
     position: sticky;
     top: 0;
@@ -420,8 +421,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   }
 
   .mobile-avatar {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
     display: flex;
@@ -433,7 +434,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   .mobile-avatar-initials {
     background: var(--bg-surface);
     color: var(--accent-gold);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
   }
 
@@ -448,7 +449,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   }
 
   .mobile-name {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
@@ -466,30 +467,53 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     z-index: 10;
     background: var(--bg-elevated);
     border-top: 1px solid var(--border);
+    min-height: 64px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .tab-item {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
-    padding: 10px 0 12px;
+    gap: 2px;
+    padding: 10px 0 8px;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 500;
     text-decoration: none;
   }
 
-  .tab-item span { display: none; }
+  .tab-item span {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+  }
 
   .tab-item.active {
     color: var(--accent-gold);
   }
 
+  .tab-item.active::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    width: 36px;
+    height: 30px;
+    border-radius: 10px;
+    background: rgba(201, 162, 39, 0.14);
+  }
+
+  .tab-icon,
+  .tab-item span {
+    position: relative;
+    z-index: 1;
+  }
+
   .tab-icon {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
 
   .tab-settings {

@@ -425,5 +425,47 @@ const cerrar = () => emit('cerrar')
   .cp-icon {
     padding: 5px;
   }
+
+  /* Bottom sheet */
+  .cp-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .cp-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    animation: sheetUp 240ms ease;
+  }
+
+  .cp-body .input {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .field-label {
+    font-size: 14px;
+  }
+
+  .cp-edit-actions .btn,
+  .cp-footer .btn {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .cp-icon {
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  @keyframes sheetUp {
+    from { transform: translateY(40px); opacity: 0.4; }
+    to { transform: translateY(0); opacity: 1; }
+  }
 }
 </style>

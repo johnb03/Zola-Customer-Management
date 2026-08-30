@@ -826,5 +826,18 @@ const guardarDesdePopup = async (cambios) => {
     bottom: 0;
     right: 1px;
   }
+
+  /* Bigger list rows and dates on mobile */
+  .cita-item {
+    padding: 16px 14px;
+  }
+
+  .cita-id {
+    font-size: 13px;
+  }
+
+  .cal-dia {
+    font-size: 15px;
+  }
 }
 </style>

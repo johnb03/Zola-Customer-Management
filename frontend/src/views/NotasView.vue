@@ -643,7 +643,7 @@ const cerrarPreview = () => {
   border: 1px solid transparent;
   color: var(--text-primary);
   font-family: 'Satoshi', sans-serif;
-  font-size: 14px;
+  font-size: 11pt;
   font-weight: 400;
   line-height: 1.6;
   resize: none;
@@ -735,8 +735,16 @@ const cerrarPreview = () => {
     border-radius: 100%;
     justify-content: center;
   }
-  .nota-card { height: auto; min-height: 120px; }
+  .nota-card { height: auto; min-height: 120px; padding: 20px 16px; }
   .nota-footer { gap: 8px; }
+
+  .badge-convertida {
+    font-size: 12px;
+  }
+
+  .nota-text {
+    font-size: 15px;
+  }
 
   .btn-convert {
     font-size: 10px;
