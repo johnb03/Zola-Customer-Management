@@ -1,245 +1,255 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { getNotas, crearNota, actualizarNota, eliminarNota, convertirNota, guardarVisitasDesdeNota, contarVisitasPorFecha } from '../api'
-import { confirmar } from '../composables/useConfirm.js'
-import { alerta } from '../composables/useAlert.js'
-import ConversionFlow from '../components/ConversionFlow.vue'
-import ConversionPreview from '../components/ConversionPreview.vue'
+import { ref, onMounted, computed, watch, onUnmounted } from "vue";
+import {
+  getNotas,
+  crearNota,
+  actualizarNota,
+  eliminarNota,
+  convertirNota,
+  guardarVisitasDesdeNota,
+  contarVisitasPorFecha,
+} from "../api";
+import { confirmar } from "../composables/useConfirm.js";
+import { alerta } from "../composables/useAlert.js";
+import ConversionFlow from "../components/ConversionFlow.vue";
+import ConversionPreview from "../components/ConversionPreview.vue";
 
-const notas = ref([])
-const cargando = ref(true)
+const notas = ref([]);
+const cargando = ref(true);
 
 // Editor modal
-const showEditor = ref(false)
-const editando = ref(null) // null = nueva, object = editando
-const editorFecha = ref('')
-const editorContenido = ref('')
-const guardando = ref(false)
+const showEditor = ref(false);
+const editando = ref(null); // null = nueva, object = editando
+const editorFecha = ref("");
+const editorContenido = ref("");
+const guardando = ref(false);
 
 // Conversion flow (timeline)
-const showFlow = ref(false)
-const flowNota = ref(null)
+const showFlow = ref(false);
+const flowNota = ref(null);
 
 // Conversion preview
-const showPreview = ref(false)
-const previewVisitas = ref([])
-const previewNotaId = ref('')
-const previewNotaFecha = ref('')
-const previewReemplazadas = ref(0)
+const showPreview = ref(false);
+const previewVisitas = ref([]);
+const previewNotaId = ref("");
+const previewNotaFecha = ref("");
+const previewReemplazadas = ref(0);
 
 // Filter
-const filtroFecha = ref('')
+const filtroFecha = ref("");
 const notasFiltradas = computed(() => {
-  if (!filtroFecha.value) return notas.value
-  return notas.value.filter((n) => n.Fecha === filtroFecha.value)
-})
+  if (!filtroFecha.value) return notas.value;
+  return notas.value.filter((n) => n.Fecha === filtroFecha.value);
+});
 
-const _d = new Date()
-const hoy = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`
+const _d = new Date();
+const hoy = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, "0")}-${String(_d.getDate()).padStart(2, "0")}`;
 
 const cargarNotas = async () => {
-  cargando.value = true
+  cargando.value = true;
   try {
-    notas.value = await getNotas()
+    notas.value = await getNotas();
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    cargando.value = false
+    cargando.value = false;
   }
-}
+};
 
-onMounted(cargarNotas)
+onMounted(cargarNotas);
 
 // --- Editor ---
 const abrirNueva = () => {
-  editando.value = null
-  editorFecha.value = hoy
-  editorContenido.value = ''
-  showEditor.value = true
-}
+  editando.value = null;
+  editorFecha.value = hoy;
+  editorContenido.value = "";
+  showEditor.value = true;
+};
 
 const abrirEditar = (nota) => {
-  editando.value = nota
-  editorFecha.value = nota.Fecha
-  editorContenido.value = nota.Contenido
-  showEditor.value = true
-}
+  editando.value = nota;
+  editorFecha.value = nota.Fecha;
+  editorContenido.value = nota.Contenido;
+  showEditor.value = true;
+};
 
 // Auto-save helper: silently save current editor content
 const autoSave = async () => {
-  const text = editorContenido.value.trim()
-  if (!text) return false // no content, nothing to save
+  const text = editorContenido.value.trim();
+  if (!text) return false; // no content, nothing to save
   // Skip save if nothing changed (existing nota with same content)
-  if (editando.value && editando.value.Contenido === text && editando.value.Fecha === editorFecha.value) {
-    return false
+  if (
+    editando.value &&
+    editando.value.Contenido === text &&
+    editando.value.Fecha === editorFecha.value
+  ) {
+    return false;
   }
   try {
     if (editando.value) {
       await actualizarNota(editando.value.ID_Nota, {
         Fecha: editorFecha.value,
         Contenido: text,
-      })
+      });
     } else {
       const nueva = await crearNota({
         Fecha: editorFecha.value,
         Contenido: text,
-      })
-      editando.value = nueva // now it's an existing nota
+      });
+      editando.value = nueva; // now it's an existing nota
     }
-    await cargarNotas()
-    return true
+    await cargarNotas();
+    return true;
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
-    return false
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
+    return false;
   }
-}
+};
+
+// --- Auto-save mientras se escribe ---
+// Guarda en silencio al pausar la escritura (crea la nota si es nueva o la
+// actualiza si ya existe), para prescindir del botón "Guardar nota".
+let saveTimer = null;
+watch(editorContenido, () => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    autoSave();
+  }, 600);
+});
+
+onUnmounted(() => clearTimeout(saveTimer));
 
 const cerrarEditor = async () => {
-  await autoSave()
-  showEditor.value = false
-  editando.value = null
-}
-
-const guardar = async () => {
-  if (!editorContenido.value.trim()) return
-  guardando.value = true
-  try {
-    if (editando.value) {
-      await actualizarNota(editando.value.ID_Nota, {
-        Fecha: editorFecha.value,
-        Contenido: editorContenido.value.trim(),
-      })
-    } else {
-      const nueva = await crearNota({
-        Fecha: editorFecha.value,
-        Contenido: editorContenido.value.trim(),
-      })
-      editando.value = nueva
-    }
-    await cargarNotas()
-    cerrarEditor()
-  } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
-  } finally {
-    guardando.value = false
-  }
-}
+  await autoSave();
+  showEditor.value = false;
+  editando.value = null;
+};
 
 const pedirBorrar = async (nota) => {
-  const ok = await confirmar({ titulo: 'Eliminar nota', mensaje: '¿Estás seguro de que querés eliminar esta nota? Esta acción no se puede deshacer.' })
-  if (!ok) return
+  const ok = await confirmar({
+    titulo: "Eliminar nota",
+    mensaje:
+      "¿Estás seguro de que querés eliminar esta nota? Esta acción no se puede deshacer.",
+  });
+  if (!ok) return;
   try {
-    await eliminarNota(nota.ID_Nota)
-    await cargarNotas()
+    await eliminarNota(nota.ID_Nota);
+    await cargarNotas();
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 // --- Conversión ---
-const iniciarConversion = (nota) => {
-  // Save any pending changes first
-  if (editando.value && editorContenido.value.trim()) {
-    actualizarNota(editando.value.ID_Nota, {
-      Fecha: editorFecha.value,
-      Contenido: editorContenido.value.trim(),
-    }).catch(() => {})
-  }
+const iniciarConversion = async (nota) => {
+  // Asegurar que la nota esté guardada (y creada si es nueva) antes de convertir
+  await autoSave();
+  const target = editando.value || nota;
+  if (!target || !editorContenido.value.trim()) return;
   // Close editor, open flow
-  showEditor.value = false
-  editando.value = null
-  flowNota.value = nota
-  showFlow.value = true
-}
+  showEditor.value = false;
+  editando.value = null;
+  flowNota.value = target;
+  showFlow.value = true;
+};
 
 const onFlowDone = async (resultado) => {
-  const notaUsada = flowNota.value
-  showFlow.value = false
-  flowNota.value = null
+  const notaUsada = flowNota.value;
+  showFlow.value = false;
+  flowNota.value = null;
 
   if (resultado.error) {
-    alerta({ titulo: 'Error', mensaje: resultado.error, tipo: 'error' })
-    return
+    alerta({ titulo: "Error", mensaje: resultado.error, tipo: "error" });
+    return;
   }
   if (!resultado.visitas || resultado.visitas.length === 0) {
-    alerta({ titulo: 'Error', mensaje: 'El agente no pudo identificar visitas en esta nota.', tipo: 'error' })
-    return
+    alerta({
+      titulo: "Error",
+      mensaje: "El agente no pudo identificar visitas en esta nota.",
+      tipo: "error",
+    });
+    return;
   }
 
   // Consultar visitas existentes de esa fecha para la advertencia de reemplazo
-  let reemplazadas = 0
+  let reemplazadas = 0;
   try {
-    const res = await contarVisitasPorFecha(notaUsada?.Fecha || '')
-    reemplazadas = res.count || 0
+    const res = await contarVisitasPorFecha(notaUsada?.Fecha || "");
+    reemplazadas = res.count || 0;
   } catch {
     // Silencioso — si falla, no mostramos advertencia
   }
 
   // Open preview for review
-  previewVisitas.value = resultado.visitas
-  previewNotaId.value = notaUsada?.ID_Nota || ''
-  previewNotaFecha.value = notaUsada?.Fecha || ''
-  previewReemplazadas.value = reemplazadas
-  showPreview.value = true
-}
+  previewVisitas.value = resultado.visitas;
+  previewNotaId.value = notaUsada?.ID_Nota || "";
+  previewNotaFecha.value = notaUsada?.Fecha || "";
+  previewReemplazadas.value = reemplazadas;
+  showPreview.value = true;
+};
 
 const onFlowCancel = () => {
-  showFlow.value = false
-  flowNota.value = null
-}
+  showFlow.value = false;
+  flowNota.value = null;
+};
 
 const confirmarConversion = async (filasActivas) => {
   if (filasActivas.length === 0) {
-    showPreview.value = false
-    return
+    showPreview.value = false;
+    return;
   }
   // Defensa "una vez por día": si OTRA nota de la misma fecha ya convirtió,
   // guardar reemplaza el reporte completo de ese día — exigir confirmación explícita.
   try {
-    const notasActuales = await getNotas()
+    const notasActuales = await getNotas();
     const otras = notasActuales.filter(
       (n) =>
         n.Convertida &&
         n.ID_Nota !== previewNotaId.value &&
-        String(n.Fecha || '').slice(0, 10) === String(previewNotaFecha.value || '').slice(0, 10),
-    )
+        String(n.Fecha || "").slice(0, 10) ===
+          String(previewNotaFecha.value || "").slice(0, 10),
+    );
     if (otras.length > 0) {
-      const existentes = previewReemplazadas.value > 0 ? previewReemplazadas.value : 'varias'
+      const existentes =
+        previewReemplazadas.value > 0 ? previewReemplazadas.value : "varias";
       const ok = await confirmar({
-        titulo: 'Otra nota ya convirtió este día',
-        mensaje: `La nota "${otras[0].ID_Nota}" (${String(otras[0].Fecha || '').slice(0, 10)}) ya convirtió visitas para este día. Al guardar se REEMPLAZARÁ todo el reporte de la fecha (${existentes} visita${previewReemplazadas.value === 1 ? '' : 's'} existente${previewReemplazadas.value === 1 ? '' : 's'}) por estas ${filasActivas.length} visita${filasActivas.length !== 1 ? 's' : ''}. ¿Continuar?`,
-      })
+        titulo: "Otra nota ya convirtió este día",
+        mensaje: `La nota "${otras[0].ID_Nota}" (${String(otras[0].Fecha || "").slice(0, 10)}) ya convirtió visitas para este día. Al guardar se REEMPLAZARÁ todo el reporte de la fecha (${existentes} visita${previewReemplazadas.value === 1 ? "" : "s"} existente${previewReemplazadas.value === 1 ? "" : "s"}) por estas ${filasActivas.length} visita${filasActivas.length !== 1 ? "s" : ""}. ¿Continuar?`,
+      });
       if (!ok) {
-        showPreview.value = false
-        return
+        showPreview.value = false;
+        return;
       }
     }
   } catch {
     // Consulta no crítica: si falla, la preview ya avisa el reemplazo por fecha
   }
-  guardando.value = true
+  guardando.value = true;
   try {
     const res = await guardarVisitasDesdeNota(previewNotaId.value, {
       fecha: previewNotaFecha.value,
       visitas: filasActivas,
-    })
-    showPreview.value = false
-    await cargarNotas()
-    const msgBase = `${filasActivas.length} visita${filasActivas.length !== 1 ? 's' : ''} guardada${filasActivas.length !== 1 ? 's' : ''}`
-    const msgReem = res.reemplazadas > 0 ? ` (se reemplazaron ${res.reemplazadas} existente${res.reemplazadas !== 1 ? 's' : ''})` : ''
-    alerta({ mensaje: `${msgBase} correctamente${msgReem}`, tipo: 'success' })
+    });
+    showPreview.value = false;
+    await cargarNotas();
+    const msgBase = `${filasActivas.length} visita${filasActivas.length !== 1 ? "s" : ""} guardada${filasActivas.length !== 1 ? "s" : ""}`;
+    const msgReem =
+      res.reemplazadas > 0
+        ? ` (se reemplazaron ${res.reemplazadas} existente${res.reemplazadas !== 1 ? "s" : ""})`
+        : "";
+    alerta({ mensaje: `${msgBase} correctamente${msgReem}`, tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    guardando.value = false
+    guardando.value = false;
   }
-}
+};
 
 const cerrarPreview = () => {
-  showPreview.value = false
-  previewVisitas.value = []
-  previewReemplazadas.value = 0
-}
+  showPreview.value = false;
+  previewVisitas.value = [];
+  previewReemplazadas.value = 0;
+};
 </script>
 
 <template>
@@ -252,16 +262,39 @@ const cerrarPreview = () => {
           <div class="gold-line"></div>
         </div>
         <div class="header-actions">
-          <button class="filter-chip" @click="filtroFecha = filtroFecha ? '' : hoy">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <button
+            class="filter-chip"
+            @click="filtroFecha = filtroFecha ? '' : hoy"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14H4V6Z" />
-              <path d="M4 10h16" /><path d="M8 4v3M16 4v3" />
+              <path d="M4 10h16" />
+              <path d="M8 4v3M16 4v3" />
             </svg>
-            <span>Filtro: {{ filtroFecha ? 'hoy' : 'fecha' }}</span>
+            <span>Filtro: {{ filtroFecha ? "hoy" : "fecha" }}</span>
           </button>
           <button class="btn-create" @click="abrirNueva">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14" /><path d="M12 5v14" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
             </svg>
           </button>
         </div>
@@ -275,16 +308,45 @@ const cerrarPreview = () => {
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="notasFiltradas.length === 0 && !cargando" class="empty-state">
-      <svg class="empty-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <div
+      v-else-if="notasFiltradas.length === 0 && !cargando"
+      class="empty-state"
+    >
+      <svg
+        class="empty-icon"
+        width="64"
+        height="64"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-        <path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" />
+        <path d="M14 2v6h6" />
+        <path d="M16 13H8" />
+        <path d="M16 17H8" />
+        <path d="M10 9H8" />
       </svg>
       <p class="empty-title">Aún no tienes notas</p>
-      <p class="empty-desc">Crea tu primera nota para registrar ideas, visitas pendientes o información de clientes.</p>
+      <p class="empty-desc">
+        Crea tu primera nota para registrar ideas, visitas pendientes o
+        información de clientes.
+      </p>
       <button class="btn-create" @click="abrirNueva">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14" /><path d="M12 5v14" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
         </svg>
       </button>
     </div>
@@ -298,8 +360,19 @@ const cerrarPreview = () => {
         @click="abrirEditar(nota)"
       >
         <span v-if="nota.Convertida" class="badge-convertida">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
+            />
             <path d="M14 2v6h6" />
           </svg>
           Convertida
@@ -307,9 +380,23 @@ const cerrarPreview = () => {
         <p class="nota-text">{{ nota.Contenido }}</p>
         <div class="nota-footer">
           <div class="nota-actions">
-            <button class="card-action-btn delete-card-btn" title="Eliminar" @click.stop="pedirBorrar(nota)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            <button
+              class="card-action-btn delete-card-btn"
+              title="Eliminar"
+              @click.stop="pedirBorrar(nota)"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
               </svg>
             </button>
           </div>
@@ -322,8 +409,18 @@ const cerrarPreview = () => {
       <div class="editor-modal">
         <div class="editor-header">
           <button class="close-btn" @click="cerrarEditor">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
             </svg>
           </button>
         </div>
@@ -344,24 +441,26 @@ const cerrarPreview = () => {
         <div class="editor-footer">
           <button class="btn-cancel" @click="cerrarEditor">Cancelar</button>
           <button
-            v-if="editando"
             class="btn-convert"
             @click="iniciarConversion(editando)"
             :disabled="!editorContenido.trim()"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
+              />
               <path d="M14 2v6h6" />
             </svg>
-            Convertir a reporte
-          </button>
-          <button
-            v-else
-            class="btn-convert"
-            @click="guardar"
-            :disabled="guardando || !editorContenido.trim()"
-          >
-            {{ guardando ? 'Guardando...' : 'Guardar nota' }}
+            Convertir nota
           </button>
         </div>
       </div>
@@ -411,7 +510,7 @@ const cerrarPreview = () => {
 }
 
 .title {
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 26px;
   font-weight: 900;
   letter-spacing: -0.5px;
@@ -441,13 +540,15 @@ const cerrarPreview = () => {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: color 120ms;
 }
-.filter-chip:hover { color: var(--text-primary); }
+.filter-chip:hover {
+  color: var(--text-primary);
+}
 
 .btn-create {
   display: inline-flex;
@@ -457,14 +558,16 @@ const cerrarPreview = () => {
   border-radius: 8px;
   background: var(--accent-gold);
   color: var(--bg-base);
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 14px;
   font-weight: 600;
   border: none;
   cursor: pointer;
   transition: opacity 120ms;
 }
-.btn-create:hover { opacity: 0.9; }
+.btn-create:hover {
+  opacity: 0.9;
+}
 
 .gold-divider {
   width: 100%;
@@ -488,7 +591,7 @@ const cerrarPreview = () => {
 }
 
 .empty-title {
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 20px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -496,7 +599,7 @@ const cerrarPreview = () => {
 }
 
 .empty-desc {
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
@@ -527,7 +630,9 @@ const cerrarPreview = () => {
   overflow: hidden;
   transition: border-color 120ms;
 }
-.nota-card:hover { border-color: var(--accent-gold); }
+.nota-card:hover {
+  border-color: var(--accent-gold);
+}
 
 .badge-convertida {
   display: inline-flex;
@@ -537,7 +642,7 @@ const cerrarPreview = () => {
   border-radius: 999px;
   background: rgba(201, 162, 39, 0.15);
   color: var(--accent-gold);
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 11px;
   font-weight: 600;
   width: fit-content;
@@ -545,7 +650,7 @@ const cerrarPreview = () => {
 
 .nota-text {
   flex: 1;
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 14px;
   font-weight: 400;
   line-height: 1.5;
@@ -580,8 +685,12 @@ const cerrarPreview = () => {
   cursor: pointer;
   transition: background 120ms;
 }
-.card-action-btn:hover { background: rgba(255, 255, 255, 0.05); }
-.delete-card-btn { color: var(--status-danger); }
+.card-action-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.delete-card-btn {
+  color: var(--status-danger);
+}
 
 /* --- Editor modal --- */
 .modal-overlay {
@@ -626,7 +735,9 @@ const cerrarPreview = () => {
   cursor: pointer;
   transition: color 120ms;
 }
-.close-btn:hover { color: var(--text-primary); }
+.close-btn:hover {
+  color: var(--text-primary);
+}
 
 .editor-textarea-wrap {
   flex: 1;
@@ -641,29 +752,42 @@ const cerrarPreview = () => {
   border-radius: 8px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-primary);
-  font-family: 'Satoshi', sans-serif;
-  font-size: 11pt;
+  color: #ffff;
+  font-family: "Satoshi", sans-serif;
+  font-size: 14pt;
   font-weight: 400;
   line-height: 1.6;
   resize: none;
   outline: none;
 }
-.editor-textarea::placeholder { color: rgba(168, 154, 133, 0.5); }
-.editor-textarea:focus { border-color: transparent; }
+.editor-textarea::placeholder {
+  color: rgba(168, 154, 133, 0.5);
+}
+.editor-textarea:focus {
+  border-color: transparent;
+}
 
 /* Scrollbar transparente con hover gris */
 .editor-textarea::-webkit-scrollbar,
-.notes-grid::-webkit-scrollbar { width: 6px; }
+.notes-grid::-webkit-scrollbar {
+  width: 6px;
+}
 .editor-textarea::-webkit-scrollbar-track,
-.notes-grid::-webkit-scrollbar-track { background: transparent; }
+.notes-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
 .editor-textarea::-webkit-scrollbar-thumb,
-.notes-grid::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+.notes-grid::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
 .editor-textarea:hover::-webkit-scrollbar-thumb,
-.notes-grid:hover::-webkit-scrollbar-thumb { background: rgba(168, 154, 133, 0.3); }
+.notes-grid:hover::-webkit-scrollbar-thumb {
+  background: rgba(168, 154, 133, 0.3);
+}
 
 .editor-warning {
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 12px;
   font-weight: 400;
   color: var(--text-secondary);
@@ -679,7 +803,7 @@ const cerrarPreview = () => {
 }
 
 .btn-cancel {
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
@@ -688,13 +812,15 @@ const cerrarPreview = () => {
   cursor: pointer;
   padding: 10px 20px;
 }
-.btn-cancel:hover { color: var(--text-primary); }
+.btn-cancel:hover {
+  color: var(--text-primary);
+}
 
 .btn-convert {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Satoshi', sans-serif;
+  font-family: "Satoshi", sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: var(--bg-base);
@@ -705,13 +831,23 @@ const cerrarPreview = () => {
   cursor: pointer;
   transition: opacity 120ms;
 }
-.btn-convert:hover { opacity: 0.9; }
-.btn-convert:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-convert:hover {
+  opacity: 0.9;
+}
+.btn-convert:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* --- Responsive --- */
 @media (max-width: 1024px) {
-  .notes-grid { grid-template-columns: repeat(2, 1fr); padding: 24px 32px; }
-  .notas-header { padding: 40px 32px 0; }
+  .notes-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 24px 32px;
+  }
+  .notas-header {
+    padding: 40px 32px 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -720,11 +856,21 @@ const cerrarPreview = () => {
     padding: 16px;
     gap: 12px;
   }
-  .notas-header { padding: 48px 16px 0; }
-  .header-top { gap: 12px; }
-  .title { font-size: 24px; }
-  .gold-line { width: 60px; }
-  .filter-chip { display: none; }
+  .notas-header {
+    padding: 48px 16px 0;
+  }
+  .header-top {
+    gap: 12px;
+  }
+  .title {
+    font-size: 24px;
+  }
+  .gold-line {
+    width: 60px;
+  }
+  .filter-chip {
+    display: none;
+  }
   .header-actions {
     flex-wrap: wrap;
   }
@@ -735,8 +881,14 @@ const cerrarPreview = () => {
     border-radius: 100%;
     justify-content: center;
   }
-  .nota-card { height: auto; min-height: 120px; padding: 20px 16px; }
-  .nota-footer { gap: 8px; }
+  .nota-card {
+    height: auto;
+    min-height: 120px;
+    padding: 20px 16px;
+  }
+  .nota-footer {
+    gap: 8px;
+  }
 
   .badge-convertida {
     font-size: 12px;
