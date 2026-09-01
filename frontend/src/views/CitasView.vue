@@ -102,12 +102,35 @@ const cobrosPorDia = computed(() => {
   return map
 })
 
+const visitasPorDia = computed(() => {
+  const map = {}
+  for (const cl of clientes.value) {
+    const f = cl.Fecha_Visita
+    if (!f) continue
+    if (!map[f]) map[f] = []
+    map[f].push({
+      ID_Cliente: cl.ID_Cliente,
+      Nombre: cl.Nombre,
+      Direccion: cl.Direccion || '',
+      Fecha_Visita: f,
+      Fecha: f,
+      _tipo: 'visita',
+      _tono: 'visita',
+    })
+  }
+  return map
+})
+
 const eventosPorDia = computed(() => {
   const map = {}
   for (const [f, items] of Object.entries(citasPorDia.value)) {
     map[f] = [...items]
   }
   for (const [f, items] of Object.entries(cobrosPorDia.value)) {
+    if (!map[f]) map[f] = []
+    map[f].push(...items)
+  }
+  for (const [f, items] of Object.entries(visitasPorDia.value)) {
     if (!map[f]) map[f] = []
     map[f].push(...items)
   }
@@ -136,6 +159,11 @@ const citasDelDia = computed(() => {
 const cobrosDelDia = computed(() => {
   if (!diaSeleccionado.value) return []
   return cobrosPorDia.value[diaSeleccionado.value] || []
+})
+
+const visitasDelDia = computed(() => {
+  if (!diaSeleccionado.value) return []
+  return visitasPorDia.value[diaSeleccionado.value] || []
 })
 
 const esHoy = (fecha) => {
@@ -417,7 +445,7 @@ const guardarDesdePopup = async (cambios) => {
             </div>
           </div>
         </div>
-        <p v-if="!citasDelDia.length && !cobrosDelDia.length" class="empty-text">Sin citas ni cobros para este día.</p>
+        <p v-if="!citasDelDia.length && !cobrosDelDia.length && !visitasDelDia.length" class="empty-text">Sin citas, cobros ni visitas para este día.</p>
 
         <!-- Cobros del día -->
         <div v-if="cobrosDelDia.length" class="dia-cobros">
@@ -438,6 +466,28 @@ const guardarDesdePopup = async (cambios) => {
               <span class="status" :class="`tone-${c._tono === 'atrasado' ? 'danger' : c._tono === 'esta-semana' ? 'warning' : 'success'}`">
                 <span class="dot" aria-hidden="true"></span>
                 {{ c._tono === 'atrasado' ? 'Vencido' : c._tono === 'esta-semana' ? 'Esta semana' : 'Pendiente' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visitas del día -->
+        <div v-if="visitasDelDia.length" class="dia-cobros">
+          <h3 class="dia-cobros-title">Visitas del día <span class="dia-cobros-count">{{ visitasDelDia.length }}</span></h3>
+          <div
+            v-for="c in visitasDelDia"
+            :key="c.ID_Cliente"
+            class="cita-item cobro-item cita-item-clickable cobro-al-dia"
+            @click="abrirPopup(c)"
+          >
+            <div class="cita-info">
+              <span class="cita-estab">{{ c.Nombre }}</span>
+              <span v-if="c.Direccion" class="cita-motivo">{{ c.Direccion }}</span>
+            </div>
+            <div class="cita-actions">
+              <span class="status tone-success">
+                <span class="dot" aria-hidden="true"></span>
+                Visita programada
               </span>
             </div>
           </div>

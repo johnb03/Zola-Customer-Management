@@ -138,7 +138,17 @@ function getById(storeName, id) {
 }
 
 function put(storeName, record) {
-  return tx(storeName, 'readwrite').then((store) => promisify(store.put(record)))
+  return tx(storeName, 'readwrite').then(
+    (store) =>
+      new Promise((resolve, reject) => {
+        const req = store.put(record)
+        // IndexedDB resuelve put() con la key, no con el objeto. Resolver con
+        // el record mantiene el contrato esperado por update()/save() callers
+        // (ej. actualizarCliente devuelve el cliente completo actualizado).
+        req.onsuccess = () => resolve(record)
+        req.onerror = () => reject(req.error)
+      })
+  )
 }
 
 function putAll(storeName, records) {

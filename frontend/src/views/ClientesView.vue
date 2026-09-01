@@ -51,14 +51,16 @@ const clientesEnRuta = computed(() => {
 })
 
 const rutaUrl = computed(() => {
-  const addrs = clientesEnRuta.value.map((c) => c.Direccion).filter(Boolean)
+  const addrs = clientesEnRuta.value.map((c) => String(c.Direccion || '').trim()).filter(Boolean)
   if (addrs.length === 0) return ''
-  const first = encodeURIComponent(addrs[0])
-  const last = encodeURIComponent(addrs[addrs.length - 1])
-  const waypoints = addrs.slice(1, -1).map(encodeURIComponent).join('|')
-  const base = `https://www.google.com/maps/dir/?api=1&origin=${first}&destination=${last}`
-  return waypoints ? `${base}&waypoints=${waypoints}` : base
+  // Formato multiescala slash: origen vacío ("Tu ubicación") + paradas en orden path.
+  const path = addrs.map((addr) => addr.replace(/\s+/g, '+'))
+  return `https://www.google.com/maps/dir//${path.join('/')}/`
 })
+
+const sinDireccionEnRuta = computed(
+  () => clientesEnRuta.value.filter((c) => !String(c.Direccion || '').trim()).length
+)
 
 const moverRuta = (idx, dir) => {
   const ids = [...enRuta.value]
@@ -204,6 +206,68 @@ const guardarCobro = async () => {
 
 const cancelarCobro = () => {
   editandoCobro.value = false
+}
+
+/* ── Editar visita ── */
+const editandoVisita = ref(false)
+const visitaForm = reactive({ Fecha_Visita: '' })
+
+const abrirEditarVisita = () => {
+  visitaForm.Fecha_Visita = selected.value?.Fecha_Visita || ''
+  editandoVisita.value = true
+}
+
+const guardarVisita = async () => {
+  if (!selected.value) return
+  try {
+    const updated = await actualizarCliente(selected.value.ID_Cliente, { Fecha_Visita: visitaForm.Fecha_Visita })
+    const idx = clientes.value.findIndex((c) => c.ID_Cliente === updated.ID_Cliente)
+    if (idx !== -1) clientes.value[idx] = updated
+    editandoVisita.value = false
+    alerta({ mensaje: 'Visita guardada.', tipo: 'success' })
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+  }
+}
+
+const cancelarVisita = () => {
+  editandoVisita.value = false
+}
+
+/* ── Editar dirección ── */
+const editandoDireccion = ref(false)
+const direccionForm = reactive({ Direccion: '' })
+
+const abrirEditarDireccion = () => {
+  direccionForm.Direccion = selected.value?.Direccion || ''
+  editandoDireccion.value = true
+}
+
+const guardarDireccion = async () => {
+  if (!selected.value) return
+  try {
+    const updated = await actualizarCliente(selected.value.ID_Cliente, { Direccion: direccionForm.Direccion })
+    const idx = clientes.value.findIndex((c) => c.ID_Cliente === updated.ID_Cliente)
+    if (idx !== -1) clientes.value[idx] = updated
+    editandoDireccion.value = false
+    alerta({ mensaje: 'Dirección guardada.', tipo: 'success' })
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+  }
+}
+
+const cancelarDireccion = () => {
+  editandoDireccion.value = false
+}
+
+const formatFecha = (s) => {
+  if (!s) return ''
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  const parts = String(s).split('-')
+  if (parts.length !== 3) return s
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  if (isNaN(d.getTime())) return s
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
 }
 
 /* ── Marcar cobrado ── */
@@ -405,6 +469,48 @@ const badgeClass = (status) => {
                 </div>
               </template>
             </div>
+            <div class="card summary-card">
+              <p class="summary-label">Fecha de visita</p>
+              <template v-if="!editandoVisita">
+                <p class="summary-value">
+                  {{ selected.Fecha_Visita ? formatFecha(selected.Fecha_Visita) : 'Sin visita registrada' }}
+                </p>
+                <button class="btn-link" @click="abrirEditarVisita">
+                  {{ selected.Fecha_Visita ? 'Editar visita' : 'Registrar visita' }}
+                </button>
+              </template>
+              <template v-else>
+                <label class="field">
+                  <span class="field-label">Fecha</span>
+                  <input v-model="visitaForm.Fecha_Visita" class="input" type="date" />
+                </label>
+                <div class="field-actions">
+                  <button class="btn btn-gold-outline btn-sm" @click="guardarVisita">Guardar</button>
+                  <button class="btn btn-ghost btn-sm" @click="cancelarVisita">Cancelar</button>
+                </div>
+              </template>
+            </div>
+            <div class="card summary-card">
+              <p class="summary-label">Dirección del cliente</p>
+              <template v-if="!editandoDireccion">
+                <p class="summary-value">
+                  {{ selected.Direccion ? selected.Direccion : 'Sin dirección cargada' }}
+                </p>
+                <button class="btn-link" @click="abrirEditarDireccion">
+                  {{ selected.Direccion ? 'Editar dirección' : 'Cargar dirección' }}
+                </button>
+              </template>
+              <template v-else>
+                <label class="field">
+                  <span class="field-label">Dirección</span>
+                  <input v-model="direccionForm.Direccion" class="input" type="text" />
+                </label>
+                <div class="field-actions">
+                  <button class="btn btn-gold-outline btn-sm" @click="guardarDireccion">Guardar</button>
+                  <button class="btn btn-ghost btn-sm" @click="cancelarDireccion">Cancelar</button>
+                </div>
+              </template>
+            </div>
           </div>
 
           <!-- Reportes generados -->
@@ -487,6 +593,11 @@ const badgeClass = (status) => {
               </li>
             </ul>
             <div class="ruta-footer">
+              <p v-if="sinDireccionEnRuta" class="ruta-aviso">
+                {{ sinDireccionEnRuta === 1
+                  ? '1 cliente quedó fuera por no tener dirección'
+                  : `${sinDireccionEnRuta} clientes quedaron fuera por no tener dirección` }}
+              </p>
               <a v-if="rutaUrl" :href="rutaUrl" target="_blank" rel="noopener" class="btn btn-gold-outline btn-sm">Abrir en Google Maps</a>
               <button v-if="clientesEnRuta.length" class="btn btn-ghost btn-sm" @click="vaciarRuta">Vaciar ruta</button>
               <button class="btn btn-ghost btn-sm" @click="showRutaPanel = false">Cerrar</button>
@@ -1199,6 +1310,13 @@ const badgeClass = (status) => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.ruta-aviso {
+  margin: 0;
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--status-warning);
 }
 
 /* Transiciones */

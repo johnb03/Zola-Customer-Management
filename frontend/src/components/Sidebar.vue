@@ -477,8 +477,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 10px 0 8px;
+    gap: 0;
+    padding: 14px 0;
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 500;
@@ -486,9 +486,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   }
 
   .tab-item span {
-    display: block;
-    font-size: 10px;
-    font-weight: 600;
+    display: none;
   }
 
   .tab-item.active {
@@ -498,7 +496,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   .tab-item.active::before {
     content: '';
     position: absolute;
-    top: 6px;
+    top: 8px;
     width: 36px;
     height: 30px;
     border-radius: 10px;
@@ -512,8 +510,8 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   }
 
   .tab-icon {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
   }
 
   .tab-settings {

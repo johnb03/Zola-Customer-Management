@@ -188,8 +188,10 @@ Calendario de citas con clientes (CRUD interno).
 ## Módulo 6 — Rutas de cobro
 
 - Cuando el usuario arme una ruta de cobro, genera el link de Google Maps
-  con las paradas en el orden dado:
-  `https://www.google.com/maps/dir/?api=1&origin=PRIMERA&destination=ULTIMA&waypoints=INTERMEDIA1|INTERMEDIA2`
+  en formato multiescala slash con TODAS las paradas en orden path y el
+  origen VACÍO (doble slash inicial = "Tu ubicación" actual del usuario);
+  los espacios se reemplazan por `+`:
+  `https://www.google.com/maps/dir//PRIMERA/INTERMEDIA1/INTERMEDIA2/ULTIMA/`
 - Si un cobro no se completa ese día, NO lo reprogrames automáticamente —
   el usuario define manualmente la nueva fecha, por diseño (así mantiene
   control sobre cuándo reintentar).

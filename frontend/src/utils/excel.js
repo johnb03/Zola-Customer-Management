@@ -3,7 +3,14 @@
  * Reemplaza los endpoints /api/export y /api/visitas/export del servidor.
  */
 
-import ExcelJS from 'exceljs'
+let _ExcelJSCache = null
+const getExcelJS = async () => {
+  if (!_ExcelJSCache) {
+    const mod = await import('exceljs')
+    _ExcelJSCache = mod.default || mod
+  }
+  return _ExcelJSCache
+}
 
 /**
  * Exporta datos genéricos a Excel (reemplaza POST /api/export).
@@ -18,6 +25,7 @@ import ExcelJS from 'exceljs'
 export async function exportarExcel({ tipo, hoja = 'Datos', columnas = [], filas = [] }) {
   if (!columnas.length) throw new Error('Sin columnas para exportar')
 
+  const ExcelJS = await getExcelJS()
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet(hoja)
   ws.columns = columnas.map((c) => ({ header: c, key: c, width: Math.max(12, c.length + 6) }))
@@ -207,6 +215,7 @@ function colLetterToNumber(letters) {
  * mapeables, crea un workbook nuevo con columnas estándar (como el servidor).
  */
 export async function buildVisitasBlob({ visitas, encabezado = {}, periodo = 'dia', fecha = '', plantilla = null }) {
+  const ExcelJS = await getExcelJS()
   let wb
   let plantillaUsada = false
 
@@ -469,6 +478,7 @@ export async function exportarDashboard({
   sinVisitar = [],
   visitasPeriodo = [],
 }) {
+  const ExcelJS = await getExcelJS()
   const wb = new ExcelJS.Workbook()
 
   // ── Hoja 1: Dashboard ──
@@ -487,9 +497,9 @@ export async function exportarDashboard({
   ws.getCell('A2').font = { italic: true, color: { argb: GRAY }, size: 10 }
   ws.getRow(2).height = 20
 
-  // KPIs (4 bloques en filas 4-5, columnas A, D, G, J)
-  const kpiCols = [1, 4, 7, 10]
-  stats.slice(0, 4).forEach((s, i) => {
+  // KPIs (filas 4-5, columnas A, D, G, J, M)
+  const kpiCols = [1, 4, 7, 10, 13]
+  stats.slice(0, kpiCols.length).forEach((s, i) => {
     const c = kpiCols[i]
     const toneColor = s.tone === 'danger' ? DANGER : s.tone === 'success' ? GREEN : GOLD
     const lc = ws.getCell(4, c)

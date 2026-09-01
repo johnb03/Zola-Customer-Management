@@ -83,7 +83,11 @@ const statNuevos = computed(() =>
   clientes.value.filter((c) => isInRange(c.Fecha_Registro)).length
 )
 
+// Histórico: total siempre, sin filtro de período.
+const statClientesTotales = computed(() => clientes.value.length)
+
 const stats = computed(() => [
+  { label: 'Clientes totales', value: statClientesTotales.value, tone: 'success' },
   { label: 'Clientes visitados', value: statVisitados.value, tone: 'success' },
   { label: 'Clientes con venta', value: statVenta.value, tone: 'success' },
   { label: 'Dinero cobrado', value: statDineroCobrado.value, tone: 'danger' },
