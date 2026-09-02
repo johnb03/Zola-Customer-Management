@@ -188,10 +188,15 @@ Calendario de citas con clientes (CRUD interno).
 ## Módulo 6 — Rutas de cobro
 
 - Cuando el usuario arme una ruta de cobro, genera el link de Google Maps
-  en formato multiescala slash con TODAS las paradas en orden path y el
-  origen VACÍO (doble slash inicial = "Tu ubicación" actual del usuario);
-  los espacios se reemplazan por `+`:
-  `https://www.google.com/maps/dir//PRIMERA/INTERMEDIA1/INTERMEDIA2/ULTIMA/`
+  en formato `api=1` (universal: funciona igual en la app y en el navegador).
+  El ORIGEN se omite para que Mapas use la ubicación actual del usuario; el
+  último cliente de la ruta es el destino final y el resto van como waypoints
+  en orden, separados por `|` (codificado `%7C`); espacios a `+`, comas a
+  `%2C`; `travelmode=driving`:
+  `https://www.google.com/maps/dir/?api=1&destination=ULTIMO&waypoints=C1|C2|C3&travelmode=driving`
+  NOTA: NO usar el formato slash multiescala `dir//A/B/C/` — solo funciona en
+  la web, la app de Google Maps no arma la ruta multi-parada con ese formato.
+  Límite de 9 waypoints en la app (rutas típicas de 1-5, sin problema).
 - Si un cobro no se completa ese día, NO lo reprogrames automáticamente —
   el usuario define manualmente la nueva fecha, por diseño (así mantiene
   control sobre cuándo reintentar).

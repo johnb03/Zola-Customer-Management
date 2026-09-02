@@ -53,9 +53,15 @@ const clientesEnRuta = computed(() => {
 const rutaUrl = computed(() => {
   const addrs = clientesEnRuta.value.map((c) => String(c.Direccion || '').trim()).filter(Boolean)
   if (addrs.length === 0) return ''
-  // Formato multiescala slash: origen vacío ("Tu ubicación") + paradas en orden path.
-  const path = addrs.map((addr) => addr.replace(/\s+/g, '+'))
-  return `https://www.google.com/maps/dir//${path.join('/')}/`
+  // Formato api=1 (universal app + navegador): sin origin usa la ubicación
+  // actual; el último cliente es el destino final y el resto van como
+  // waypoints en orden, separados por | (%7C). El slash multiescala que se
+  // usaba antes solo funcionaba en la web, no en la app de Google Maps.
+  const enc = (s) => s.replace(/\s+/g, '+').replace(/,/g, '%2C')
+  const destination = enc(addrs[addrs.length - 1])
+  const waypoints = addrs.slice(0, -1).map(enc).join('%7C')
+  const q = `destination=${destination}&travelmode=driving`
+  return `https://www.google.com/maps/dir/?api=1&${q}${waypoints ? `&waypoints=${waypoints}` : ''}`
 })
 
 const sinDireccionEnRuta = computed(
