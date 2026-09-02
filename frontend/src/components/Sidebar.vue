@@ -496,11 +496,13 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   .tab-item.active::before {
     content: '';
     position: absolute;
-    top: 8px;
+    top: 50%;
+    left: 50%;
     width: 36px;
     height: 30px;
     border-radius: 10px;
     background: rgba(201, 162, 39, 0.14);
+    transform: translate(-50%, -50%);
   }
 
   .tab-icon,
