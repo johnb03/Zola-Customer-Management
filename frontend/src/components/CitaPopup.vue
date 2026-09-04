@@ -10,7 +10,7 @@ const emit = defineEmits(['cerrar', 'completar', 'eliminar', 'guardar', 'guardar
 const esCobro = computed(() => props.cita?._tipo === 'cobro')
 
 const editando = ref(false)
-const form = ref({ Fecha: '', Motivo: '', Monto: '' })
+const form = ref({ Fecha: '', Hora: '', Motivo: '', Monto: '' })
 
 watch(
   () => props.cita,
@@ -23,6 +23,7 @@ watch(
         form.value.Motivo = ''
       } else {
         form.value.Fecha = cita.Fecha || ''
+        form.value.Hora = cita.Hora || ''
         form.value.Motivo = cita.Motivo || ''
         form.value.Monto = ''
       }
@@ -63,6 +64,7 @@ const abrirEdicion = () => {
     form.value.Monto = c.Monto ?? ''
   } else {
     form.value.Fecha = c.Fecha || ''
+    form.value.Hora = c.Hora || ''
     form.value.Motivo = c.Motivo || ''
   }
   editando.value = true
@@ -76,7 +78,7 @@ const guardarEdicion = () => {
   if (esCobro.value) {
     emit('guardarCobro', { Fecha_Cobro: form.value.Fecha, Monto: form.value.Monto })
   } else {
-    emit('guardar', { Fecha: form.value.Fecha, Motivo: form.value.Motivo })
+    emit('guardar', { Fecha: form.value.Fecha, Hora: form.value.Hora, Motivo: form.value.Motivo })
   }
   editando.value = false
 }
@@ -177,7 +179,11 @@ const cerrar = () => emit('cerrar')
                 <span class="field-label">Monto</span>
                 <input v-model="form.Monto" type="number" min="0" step="0.01" class="input" />
               </label>
-              <label v-else class="field">
+              <label v-if="!esCobro" class="field">
+                <span class="field-label">Hora</span>
+                <input v-model="form.Hora" type="time" class="input" />
+              </label>
+              <label v-if="!esCobro" class="field">
                 <span class="field-label">Motivo / Nota</span>
                 <input v-model="form.Motivo" type="text" class="input" placeholder="Nota de la cita" />
               </label>

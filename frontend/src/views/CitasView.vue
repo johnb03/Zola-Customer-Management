@@ -4,6 +4,12 @@ import { getCitas, crearCita, actualizarCita, eliminarCita, getClientes, actuali
 import CitaPopup from '../components/CitaPopup.vue'
 import { alerta } from '../composables/useAlert.js'
 
+const fmtDinero = (v) => {
+  const n = Number(String(v).replace(/[^0-9.,-]/g, '').replace(',', '.'))
+  if (!n && n !== 0) return ''
+  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const citas = ref([])
 const clientes = ref([])
 const cargando = ref(true)
@@ -16,6 +22,7 @@ const citaSeleccionada = ref(null)
 
 const form = reactive({
   fecha: '',
+  hora: '',
   establecimiento: '',
   motivo: '',
 })
@@ -151,9 +158,11 @@ const estadoDias = computed(() => {
 
 const citasDelDia = computed(() => {
   if (!diaSeleccionado.value) return []
-  return (citasPorDia.value[diaSeleccionado.value] || []).sort((a, b) =>
-    (a.ID_Cita || '').localeCompare(b.ID_Cita || '')
-  )
+  return (citasPorDia.value[diaSeleccionado.value] || []).sort((a, b) => {
+    const ha = a.Hora || '99:99'
+    const hb = b.Hora || '99:99'
+    return ha.localeCompare(hb) || (a.ID_Cita || '').localeCompare(b.ID_Cita || '')
+  })
 })
 
 const cobrosDelDia = computed(() => {
@@ -216,6 +225,7 @@ const toggleForm = () => {
   mostrandoForm.value = !mostrandoForm.value
   if (mostrandoForm.value) {
     form.fecha = diaSeleccionado.value || hoy.toISOString().slice(0, 10)
+    form.hora = ''
     form.establecimiento = ''
     form.motivo = ''
   }
@@ -227,14 +237,57 @@ const nuevaCita = async () => {
     return
   }
   try {
-    await crearCita({ Fecha: form.fecha, Establecimiento: form.establecimiento, Motivo: form.motivo })
+    const payload = { Fecha: form.fecha, Establecimiento: form.establecimiento, Motivo: form.motivo }
+    if (form.hora) payload.Hora = form.hora
+    await crearCita(payload)
     alerta({ mensaje: 'Cita creada', tipo: 'success' })
+    // Programar recordatorio push si tiene hora
+    if (form.hora) programarRecordatorio({ Fecha: form.fecha, Hora: form.hora, Establecimiento: form.establecimiento })
     mostrandoForm.value = false
     await cargar()
     diaSeleccionado.value = form.fecha
   } catch (e) {
     alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
   }
+}
+
+// Recordatorio push vía Web Notification (solo funciona mientras la app está
+// abierta; sin service worker push no hay notificación cuando la app está cerrada).
+const programarRecordatorio = (cita) => {
+  if (!('Notification' in window)) {
+    alerta({ mensaje: 'Tu navegador no soporta notificaciones', tipo: 'info' })
+    return
+  }
+  if (Notification.permission === 'denied') {
+    alerta({ mensaje: 'Notificaciones bloqueadas. Habilitalas en el navegador.', tipo: 'info' })
+    return
+  }
+  const pedirPermiso = async () => {
+    if (Notification.permission !== 'granted') {
+      const res = await Notification.requestPermission()
+      if (res !== 'granted') return
+    }
+    // Programar 30 min antes de la hora
+    const [h, m] = String(cita.Hora).split(':').map(Number)
+    const fechaCita = new Date(cita.Fecha + 'T' + (cita.Hora || '00:00'))
+    fechaCita.setHours(h, m, 0, 0)
+    const delay = fechaCita.getTime() - Date.now() - 30 * 60 * 1000
+    if (delay <= 0) {
+      alerta({ mensaje: 'La cita es en menos de 30 min, no se programa recordatorio', tipo: 'info' })
+      return
+    }
+    setTimeout(() => {
+      try {
+        new Notification('Zola — Recordatorio', {
+          body: `${cita.Establecimiento} · ${cita.Fecha} ${cita.Hora} (en 30 min)`,
+        })
+      } catch {
+        /* notification fallback silencioso */
+      }
+    }, delay)
+    alerta({ mensaje: `Recordatorio programado para ${cita.Hora} (30 min antes)`, tipo: 'success' })
+  }
+  pedirPermiso()
 }
 
 const completarCita = async (cita) => {
@@ -317,6 +370,13 @@ const guardarDesdePopup = async (cambios) => {
   try {
     await actualizarCita(citaSeleccionada.value.ID_Cita, cambios)
     alerta({ mensaje: `${citaSeleccionada.value.ID_Cita} actualizada`, tipo: 'success' })
+    if (cambios.Hora) {
+      programarRecordatorio({
+        Fecha: cambios.Fecha || citaSeleccionada.value.Fecha,
+        Hora: cambios.Hora,
+        Establecimiento: citaSeleccionada.value.Establecimiento,
+      })
+    }
     await cargar()
   } catch (e) {
     alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
@@ -392,6 +452,10 @@ const guardarDesdePopup = async (cambios) => {
             <input v-model="form.fecha" type="date" class="input" />
           </label>
           <label class="field">
+            <span class="field-label">Hora</span>
+            <input v-model="form.hora" type="time" class="input" />
+          </label>
+          <label class="field">
             <span class="field-label">Establecimiento *</span>
             <input v-model="form.establecimiento" type="text" class="input" placeholder="Nombre del local" />
           </label>
@@ -413,6 +477,7 @@ const guardarDesdePopup = async (cambios) => {
             @click="abrirPopup(c)"
           >
             <div class="cita-info">
+              <span v-if="c.Hora" class="cita-hora">⏰ {{ c.Hora }}</span>
               <span class="cita-id">{{ c.ID_Cita }}</span>
               <span class="cita-estab">{{ c.Establecimiento }}</span>
               <span v-if="c.Motivo" class="cita-motivo">{{ c.Motivo }}</span>
@@ -460,7 +525,7 @@ const guardarDesdePopup = async (cambios) => {
             <div class="cita-info">
               <span class="cita-estab">{{ c.Nombre }}</span>
               <span v-if="c.Direccion" class="cita-motivo">{{ c.Direccion }}</span>
-              <span v-if="c.Monto" class="cobro-monto">${{ c.Monto }}</span>
+              <span v-if="c.Monto" class="cobro-monto">${{ fmtDinero(c.Monto) }}</span>
             </div>
             <div class="cita-actions">
               <span class="status" :class="`tone-${c._tono === 'atrasado' ? 'danger' : c._tono === 'esta-semana' ? 'warning' : 'success'}`">
@@ -733,6 +798,12 @@ const guardarDesdePopup = async (cambios) => {
   font-size: 12px;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.cita-hora {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-gold, #c9a227);
 }
 
 .cita-estab {
