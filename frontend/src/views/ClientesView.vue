@@ -1,317 +1,451 @@
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { getClientes, actualizarCliente, getEstado, downloadReportDocx, crearCliente, cobrarCliente } from '../api.js'
-import { dataVersion } from '../store.js'
-import { confirmar } from '../composables/useConfirm.js'
-import { alerta } from '../composables/useAlert.js'
-import ClienteFormModal from '../components/ClienteFormModal.vue'
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import {
+  getClientes,
+  actualizarCliente,
+  getEstado,
+  downloadReportDocx,
+  crearCliente,
+  cobrarCliente,
+} from "../api.js";
+import { dataVersion, notifyDataChanged } from "../store.js";
+import { confirmar } from "../composables/useConfirm.js";
+import { alerta } from "../composables/useAlert.js";
+import ClienteFormModal from "../components/ClienteFormModal.vue";
 
 /* ── State ── */
-const clientes = ref([])
-const docxFiles = ref([])
-const cargando = ref(true)
-const selectedId = ref(null)
-const search = ref('')
-const editandoCobro = ref(false)
-const cobroForm = reactive({ Fecha_Cobro: '', Monto: '' })
-const verTodos = ref(false)
-const showCrearModal = ref(false)
-const visibleCount = ref(12)
+const clientes = ref([]);
+const docxFiles = ref([]);
+const cargando = ref(true);
+const selectedId = ref(null);
+const search = ref("");
+const editandoCobro = ref(false);
+const cobroForm = reactive({ Fecha_Cobro: "", Monto: "" });
+
+const fmtDinero = (v) => {
+  const n = Number(String(v).replace(/[^0-9.,-]/g, "").replace(",", "."));
+  if (!n && n !== 0) return "";
+  return n.toLocaleString("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const montoFormateado = computed(() => {
+  const v = selected.value?.Monto;
+  if (v == null || v === "") return "";
+  return `$${fmtDinero(v)}`;
+});
+const verTodos = ref(false);
+const showCrearModal = ref(false);
+const visibleCount = ref(12);
 
 /* ── Ruta multi-punto ── */
-const enRuta = ref(new Set())
-const showRutaPanel = ref(false)
+const enRuta = ref(new Set());
+const showRutaPanel = ref(false);
 
 onMounted(() => {
   try {
-    const saved = JSON.parse(localStorage.getItem('zola-ruta') || '[]')
-    enRuta.value = new Set(saved)
-  } catch { enRuta.value = new Set() }
-})
+    const saved = JSON.parse(localStorage.getItem("zola-ruta") || "[]");
+    enRuta.value = new Set(saved);
+  } catch {
+    enRuta.value = new Set();
+  }
+});
 
 const persistirRuta = () => {
-  localStorage.setItem('zola-ruta', JSON.stringify([...enRuta.value]))
-}
+  localStorage.setItem("zola-ruta", JSON.stringify([...enRuta.value]));
+};
 
 const toggleEnRuta = (id) => {
-  const copy = new Set(enRuta.value)
-  if (copy.has(id)) copy.delete(id)
-  else copy.add(id)
-  enRuta.value = copy
-  persistirRuta()
-}
+  const copy = new Set(enRuta.value);
+  if (copy.has(id)) copy.delete(id);
+  else copy.add(id);
+  enRuta.value = copy;
+  persistirRuta();
+};
 
 const clientesEnRuta = computed(() => {
-  const list = []
+  const list = [];
   for (const id of enRuta.value) {
-    const c = clientes.value.find((x) => x.ID_Cliente === id)
-    if (c) list.push(c)
+    const c = clientes.value.find((x) => x.ID_Cliente === id);
+    if (c) list.push(c);
   }
-  return list
-})
+  return list;
+});
 
-const rutaUrl = computed(() => {
-  const addrs = clientesEnRuta.value.map((c) => String(c.Direccion || '').trim()).filter(Boolean)
-  if (addrs.length === 0) return ''
-  // Formato api=1 (universal app + navegador): sin origin usa la ubicación
-  // actual; el último cliente es el destino final y el resto van como
-  // waypoints en orden, separados por | (%7C). El slash multiescala que se
-  // usaba antes solo funcionaba en la web, no en la app de Google Maps.
-  const enc = (s) => s.replace(/\s+/g, '+').replace(/,/g, '%2C')
-  const destination = enc(addrs[addrs.length - 1])
-  const waypoints = addrs.slice(0, -1).map(enc).join('%7C')
-  const q = `destination=${destination}&travelmode=driving`
-  return `https://www.google.com/maps/dir/?api=1&${q}${waypoints ? `&waypoints=${waypoints}` : ''}`
-})
+// Límite de waypoints para mobile browser (api=1): 3 waypoints + 1 destino = 4 paradas
+const MAX_WAYPOINTS = 3;
+
+const rutaSegmentos = computed(() => {
+  const conDir = clientesEnRuta.value.filter((c) =>
+    String(c.Direccion || "").trim(),
+  );
+  const sinDir = clientesEnRuta.value.length - conDir.length;
+  if (conDir.length === 0) return [];
+
+  const enc = (s) => encodeURIComponent(s);
+
+  const segments = [];
+  for (let i = 0; i < conDir.length; i += MAX_WAYPOINTS + 1) {
+    const chunk = conDir.slice(i, i + MAX_WAYPOINTS + 1);
+    const addrs = chunk.map((c) => String(c.Direccion || "").trim());
+    const destination = enc(addrs[addrs.length - 1]);
+    const waypoints = addrs.slice(0, -1).map(enc).join("%7C");
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving${waypoints ? `&waypoints=${waypoints}` : ""}`;
+    const start = i + 1;
+    const end = Math.min(i + MAX_WAYPOINTS + 1, conDir.length);
+    segments.push({
+      label:
+        conDir.length <= MAX_WAYPOINTS + 1
+          ? "Abrir en Google Maps"
+          : `Sección ${segments.length + 1} (${start}–${end} de ${conDir.length})`,
+      url,
+      count: chunk.length,
+      missingCount: sinDir,
+    });
+  }
+  return segments;
+});
+
+// Compat: cuando hay un solo segmento, mantener rutaUrl para links existentes
+const rutaUrl = computed(() =>
+  rutaSegmentos.value.length === 1 ? rutaSegmentos.value[0].url : "",
+);
 
 const sinDireccionEnRuta = computed(
-  () => clientesEnRuta.value.filter((c) => !String(c.Direccion || '').trim()).length
-)
+  () =>
+    clientesEnRuta.value.filter((c) => !String(c.Direccion || "").trim())
+      .length,
+);
 
 const moverRuta = (idx, dir) => {
-  const ids = [...enRuta.value]
-  const target = idx + dir
-  if (target < 0 || target >= ids.length) return
-  const tmp = ids[idx]
-  ids[idx] = ids[target]
-  ids[target] = tmp
-  enRuta.value = new Set(ids)
-  persistirRuta()
-}
+  const ids = [...enRuta.value];
+  const target = idx + dir;
+  if (target < 0 || target >= ids.length) return;
+  const tmp = ids[idx];
+  ids[idx] = ids[target];
+  ids[target] = tmp;
+  enRuta.value = new Set(ids);
+  persistirRuta();
+};
 
 const vaciarRuta = () => {
-  enRuta.value = new Set()
-  persistirRuta()
-}
+  enRuta.value = new Set();
+  persistirRuta();
+};
 
 const removeFromRuta = (id) => {
-  toggleEnRuta(id)
-}
+  toggleEnRuta(id);
+};
 
 /* ── Visible list limit ── */
-const displayedClientes = computed(() => filtered.value.slice(0, visibleCount.value))
-const hasMore = computed(() => filtered.value.length > visibleCount.value)
-const verMas = () => { visibleCount.value += 12 }
-watch(search, () => { visibleCount.value = 12 })
-watch(verTodos, () => { visibleCount.value = 12 })
+const displayedClientes = computed(() =>
+  filtered.value.slice(0, visibleCount.value),
+);
+const hasMore = computed(() => filtered.value.length > visibleCount.value);
+const verMas = () => {
+  visibleCount.value += 12;
+};
+watch(search, () => {
+  visibleCount.value = 12;
+});
+watch(verTodos, () => {
+  visibleCount.value = 12;
+});
 
 /* ── Carga ── */
 const cargar = async () => {
-  cargando.value = true
+  cargando.value = true;
   try {
-    const [lista, estado] = await Promise.all([getClientes(), getEstado()])
-    clientes.value = lista
-    docxFiles.value = estado.reportesDocx || []
+    const [lista, estado] = await Promise.all([getClientes(), getEstado()]);
+    clientes.value = lista;
+    docxFiles.value = estado.reportesDocx || [];
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    cargando.value = false
+    cargando.value = false;
   }
-}
+};
 
-cargar()
-watch(dataVersion, cargar)
+cargar();
+watch(dataVersion, cargar);
 
 /* ── Selección ── */
-const activeStages = new Set(['cliente activo', 'seguimiento', 'cobro', 'visita'])
+// Todas las etapas que el sistema genera. El filtro activeStages
+// NUNCA debe ocultar clientes de etapas conocidas — solo filtra
+// por nombre/dirección con el search. El toggle "verTodos" queda
+// para paginado, no para ocultar etapas.
+const activeStages = new Set([
+  "cliente activo",
+  "cliente potencial",
+  "seguimiento",
+  "cobro",
+  "cobrado",
+  "visita",
+]);
 
 const filtered = computed(() => {
-  let list = clientes.value
+  let list = clientes.value;
   if (!verTodos.value) {
-    list = list.filter((c) => activeStages.has(String(c.Etapa_Embudo || '').toLowerCase()))
-  }
-  const q = search.value.toLowerCase().trim()
-  if (q) {
     list = list.filter((c) =>
-      (c.Nombre || '').toLowerCase().includes(q) ||
-      (c.Direccion || '').toLowerCase().includes(q)
-    )
+      activeStages.has(String(c.Etapa_Embudo || "").toLowerCase()),
+    );
+  }
+  const q = search.value.toLowerCase().trim();
+  if (q) {
+    list = list.filter(
+      (c) =>
+        (c.Nombre || "").toLowerCase().includes(q) ||
+        (c.Direccion || "").toLowerCase().includes(q),
+    );
   }
   return [...list].sort((a, b) => {
-    const p = statusPriority(a) - statusPriority(b)
-    if (p !== 0) return p
-    return String(a.Nombre || '').localeCompare(String(b.Nombre || ''))
-  })
-})
+    const p = statusPriority(a) - statusPriority(b);
+    if (p !== 0) return p;
+    return String(a.Nombre || "").localeCompare(String(b.Nombre || ""));
+  });
+});
 
-const selected = computed(() => clientes.value.find((c) => c.ID_Cliente === selectedId.value) || null)
+const selected = computed(
+  () => clientes.value.find((c) => c.ID_Cliente === selectedId.value) || null,
+);
 
 /* ── Status derivado de Fecha_Cobro ── */
 const cobroStatus = (cliente) => {
-  const f = cliente?.Fecha_Cobro
-  if (!f) return null
-  const hoy = new Date()
-  hoy.setHours(0, 0, 0, 0)
-  const parts = String(f).split('-')
-  if (parts.length !== 3) return null
-  const fechaCobro = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-  if (isNaN(fechaCobro.getTime())) return null
-  const diff = Math.floor((fechaCobro - hoy) / (1000 * 60 * 60 * 24))
-  if (diff < 0) return { status: 'atrasado', label: 'Cobro atrasado' }
-  if (diff === 0) return { status: 'esta-semana', label: 'Cobro hoy' }
-  if (diff <= 7) return { status: 'esta-semana', label: 'Cobro esta semana' }
-  return { status: 'al-dia', label: 'Cobro programado' }
-}
+  const f = cliente?.Fecha_Cobro;
+  if (!f) return null;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const parts = String(f).split("-");
+  if (parts.length !== 3) return null;
+  const fechaCobro = new Date(
+    Number(parts[0]),
+    Number(parts[1]) - 1,
+    Number(parts[2]),
+  );
+  if (isNaN(fechaCobro.getTime())) return null;
+  const diff = Math.floor((fechaCobro - hoy) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return { status: "atrasado", label: "Cobro atrasado" };
+  if (diff === 0) return { status: "esta-semana", label: "Cobro hoy" };
+  if (diff <= 7) return { status: "esta-semana", label: "Cobro esta semana" };
+  return { status: "al-dia", label: "Cobro programado" };
+};
 
 const clienteStatusDisplay = (cliente) => {
-  const cobro = cobroStatus(cliente)
-  if (cobro) return cobro
-  const s = String(cliente?.Etapa_Embudo || '').toLowerCase()
-  if (['cliente activo', 'cliente'].includes(s)) return { status: 'al-dia', label: 'Al día' }
-  if (['propuesta enviada', 'contactado', 'cliente potencial'].includes(s)) return { status: 'esta-semana', label: 'Pendiente' }
-  if (['no interesado', 'inactivo'].includes(s)) return { status: 'atrasado', label: 'Inactivo' }
-  return { status: 'esta-semana', label: cliente?.Etapa_Embudo || '' }
-}
+  const cobro = cobroStatus(cliente);
+  if (cobro) return cobro;
+  const s = String(cliente?.Etapa_Embudo || "").toLowerCase();
+  if (["cliente activo", "cliente"].includes(s))
+    return { status: "al-dia", label: "Al día" };
+  if (["propuesta enviada", "contactado", "cliente potencial"].includes(s))
+    return { status: "esta-semana", label: "Pendiente" };
+  if (["no interesado", "inactivo"].includes(s))
+    return { status: "atrasado", label: "Inactivo" };
+  return { status: "esta-semana", label: cliente?.Etapa_Embudo || "" };
+};
 
 /* ── Prioridad de status para la lista (atrasado → al día) ── */
 const statusPriority = (cliente) => {
-  const s = clienteStatusDisplay(cliente)?.status
-  if (s === 'atrasado') return 0
-  if (s === 'esta-semana') return 1
-  return 2
-}
+  const s = clienteStatusDisplay(cliente)?.status;
+  if (s === "atrasado") return 0;
+  if (s === "esta-semana") return 1;
+  return 2;
+};
 
 /* ── Reportes del cliente ── */
 const clienteReportes = computed(() => {
-  if (!selected.value) return []
-  const nombre = (selected.value.Nombre || '').toLowerCase().replace(/\s+/g, '-')
+  if (!selected.value) return [];
+  const nombre = (selected.value.Nombre || "")
+    .toLowerCase()
+    .replace(/\s+/g, "-");
   return docxFiles.value.filter((f) => {
-    const lower = f.toLowerCase()
-    return lower.includes(nombre) || nombre.includes(lower.split('_').slice(1).join('-').split('.')[0])
-  })
-})
+    const lower = f.toLowerCase();
+    return (
+      lower.includes(nombre) ||
+      nombre.includes(lower.split("_").slice(1).join("-").split(".")[0])
+    );
+  });
+});
 
 const ultimoReporteFecha = computed(() => {
-  if (!clienteReportes.value.length) return '—'
-  const match = clienteReportes.value[0].match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (!match) return clienteReportes.value[0]
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-  return `${Number(match[3])} ${months[Number(match[2]) - 1]} ${match[1]}`
-})
+  if (!clienteReportes.value.length) return "—";
+  const match = clienteReportes.value[0].match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return clienteReportes.value[0];
+  const months = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  return `${Number(match[3])} ${months[Number(match[2]) - 1]} ${match[1]}`;
+});
 
 /* ── Editar cobro ── */
 const abrirEditarCobro = () => {
-  cobroForm.Fecha_Cobro = selected.value?.Fecha_Cobro || ''
-  cobroForm.Monto = selected.value?.Monto ?? ''
-  editandoCobro.value = true
-}
+  cobroForm.Fecha_Cobro = selected.value?.Fecha_Cobro || "";
+  cobroForm.Monto = selected.value?.Monto ?? "";
+  editandoCobro.value = true;
+};
 
 const guardarCobro = async () => {
-  if (!selected.value) return
+  if (!selected.value) return;
   try {
-    const updates = { Fecha_Cobro: cobroForm.Fecha_Cobro, Monto: cobroForm.Monto }
-    const updated = await actualizarCliente(selected.value.ID_Cliente, updates)
-    const idx = clientes.value.findIndex((c) => c.ID_Cliente === updated.ID_Cliente)
-    if (idx !== -1) clientes.value[idx] = updated
-    editandoCobro.value = false
-    alerta({ mensaje: 'Cobro guardado.', tipo: 'success' })
+    const updates = {
+      Fecha_Cobro: cobroForm.Fecha_Cobro,
+      Monto: cobroForm.Monto,
+    };
+    const updated = await actualizarCliente(selected.value.ID_Cliente, updates);
+    const idx = clientes.value.findIndex(
+      (c) => c.ID_Cliente === updated.ID_Cliente,
+    );
+    if (idx !== -1) clientes.value[idx] = updated;
+    editandoCobro.value = false;
+    notifyDataChanged();
+    alerta({ mensaje: "Cobro guardado.", tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 const cancelarCobro = () => {
-  editandoCobro.value = false
-}
+  editandoCobro.value = false;
+};
 
 /* ── Editar visita ── */
-const editandoVisita = ref(false)
-const visitaForm = reactive({ Fecha_Visita: '' })
+const editandoVisita = ref(false);
+const visitaForm = reactive({ Fecha_Visita: "" });
 
 const abrirEditarVisita = () => {
-  visitaForm.Fecha_Visita = selected.value?.Fecha_Visita || ''
-  editandoVisita.value = true
-}
+  visitaForm.Fecha_Visita = selected.value?.Fecha_Visita || "";
+  editandoVisita.value = true;
+};
 
 const guardarVisita = async () => {
-  if (!selected.value) return
+  if (!selected.value) return;
   try {
-    const updated = await actualizarCliente(selected.value.ID_Cliente, { Fecha_Visita: visitaForm.Fecha_Visita })
-    const idx = clientes.value.findIndex((c) => c.ID_Cliente === updated.ID_Cliente)
-    if (idx !== -1) clientes.value[idx] = updated
-    editandoVisita.value = false
-    alerta({ mensaje: 'Visita guardada.', tipo: 'success' })
+    const updated = await actualizarCliente(selected.value.ID_Cliente, {
+      Fecha_Visita: visitaForm.Fecha_Visita,
+    });
+    const idx = clientes.value.findIndex(
+      (c) => c.ID_Cliente === updated.ID_Cliente,
+    );
+    if (idx !== -1) clientes.value[idx] = updated;
+    editandoVisita.value = false;
+    notifyDataChanged();
+    alerta({ mensaje: "Visita guardada.", tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 const cancelarVisita = () => {
-  editandoVisita.value = false
-}
+  editandoVisita.value = false;
+};
 
 /* ── Editar dirección ── */
-const editandoDireccion = ref(false)
-const direccionForm = reactive({ Direccion: '' })
+const editandoDireccion = ref(false);
+const direccionForm = reactive({ Direccion: "" });
 
 const abrirEditarDireccion = () => {
-  direccionForm.Direccion = selected.value?.Direccion || ''
-  editandoDireccion.value = true
-}
+  direccionForm.Direccion = selected.value?.Direccion || "";
+  editandoDireccion.value = true;
+};
 
 const guardarDireccion = async () => {
-  if (!selected.value) return
+  if (!selected.value) return;
   try {
-    const updated = await actualizarCliente(selected.value.ID_Cliente, { Direccion: direccionForm.Direccion })
-    const idx = clientes.value.findIndex((c) => c.ID_Cliente === updated.ID_Cliente)
-    if (idx !== -1) clientes.value[idx] = updated
-    editandoDireccion.value = false
-    alerta({ mensaje: 'Dirección guardada.', tipo: 'success' })
+    const updated = await actualizarCliente(selected.value.ID_Cliente, {
+      Direccion: direccionForm.Direccion,
+    });
+    const idx = clientes.value.findIndex(
+      (c) => c.ID_Cliente === updated.ID_Cliente,
+    );
+    if (idx !== -1) clientes.value[idx] = updated;
+    editandoDireccion.value = false;
+    alerta({ mensaje: "Dirección guardada.", tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 const cancelarDireccion = () => {
-  editandoDireccion.value = false
-}
+  editandoDireccion.value = false;
+};
 
 const formatFecha = (s) => {
-  if (!s) return ''
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-  const parts = String(s).split('-')
-  if (parts.length !== 3) return s
-  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-  if (isNaN(d.getTime())) return s
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-}
+  if (!s) return "";
+  const months = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  const parts = String(s).split("-");
+  if (parts.length !== 3) return s;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (isNaN(d.getTime())) return s;
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
 
 /* ── Marcar cobrado ── */
-const marcandoCobro = ref(false)
+const marcandoCobro = ref(false);
 const marcarCobrado = async () => {
-  if (!selected.value) return
+  if (!selected.value) return;
   const ok = await confirmar({
-    titulo: 'Marcar cobrado',
-    mensaje: `¿Registrar el cobro de ${selected.value.Nombre} por $${selected.value.Monto || '0'} y volverlo a "Al día"?`,
-  })
-  if (!ok) return
+    titulo: "Marcar cobrado",
+    mensaje: `¿Registrar el cobro de ${selected.value.Nombre} por $${fmtDinero(selected.value.Monto || "0")} y volverlo a "Al día"?`,
+  });
+  if (!ok) return;
   try {
-    marcandoCobro.value = true
-    await cobrarCliente(selected.value.ID_Cliente)
-    await cargar()
-    alerta({ mensaje: 'Cobro registrado. Cliente al día.', tipo: 'success' })
+    marcandoCobro.value = true;
+    await cobrarCliente(selected.value.ID_Cliente);
+    await cargar();
+    notifyDataChanged();
+    alerta({ mensaje: "Cobro registrado. Cliente al día.", tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
-    marcandoCobro.value = false
+    marcandoCobro.value = false;
   }
-}
+};
 
 const marcarAlDia = async () => {
-  if (!selected.value) return
+  if (!selected.value) return;
   const ok = await confirmar({
-    titulo: 'Marcar al día',
+    titulo: "Marcar al día",
     mensaje: `¿Cambiar ${selected.value.Nombre} de "Seguimiento" a "Cliente activo"?`,
-  })
-  if (!ok) return
+  });
+  if (!ok) return;
   try {
-    await actualizarCliente(selected.value.ID_Cliente, { Etapa_Embudo: 'Cliente activo' })
-    await cargar()
-    alerta({ mensaje: `${selected.value.Nombre} ahora está al día.`, tipo: 'success' })
+    await actualizarCliente(selected.value.ID_Cliente, {
+      Etapa_Embudo: "Cliente activo",
+    });
+    await cargar();
+    alerta({
+      mensaje: `${selected.value.Nombre} ahora está al día.`,
+      tipo: "success",
+    });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 /* ── Editar notas ── */
 const editandoNotas = ref(false)
@@ -342,25 +476,25 @@ const cancelarNotas = () => {
 /* ── Crear cliente ── */
 const crearClienteSubmit = async (form) => {
   try {
-    const nuevo = await crearCliente(form)
-    await cargar()
+    const nuevo = await crearCliente(form);
+    await cargar();
     // Un cliente nuevo es "Cliente potencial" por defecto, que NO está en el
     // filtro de activos — forzamos "Todos" para que se vea al crearlo.
-    verTodos.value = true
-    selectedId.value = nuevo.ID_Cliente
-    showCrearModal.value = false
-    alerta({ mensaje: 'Cliente creado.', tipo: 'success' })
+    verTodos.value = true;
+    selectedId.value = nuevo.ID_Cliente;
+    showCrearModal.value = false;
+    alerta({ mensaje: "Cliente creado.", tipo: "success" });
   } catch (e) {
-    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   }
-}
+};
 
 /* ── Helpers ── */
 const badgeClass = (status) => {
-  if (status === 'danger') return 'badge badge-danger'
-  if (status === 'warning') return 'badge badge-warning'
-  return 'badge badge-success'
-}
+  if (status === "danger") return "badge badge-danger";
+  if (status === "warning") return "badge badge-warning";
+  return "badge badge-success";
+};
 </script>
 
 <template>
@@ -369,13 +503,18 @@ const badgeClass = (status) => {
     <template v-if="!cargando && clientes.length === 0">
       <header class="section-header">
         <h1 class="section-title">Clientes</h1>
-        <p class="section-subtitle">Directorio de clientes con ficha, reportes y cobros.</p>
+        <p class="section-subtitle">
+          Directorio de clientes con ficha, reportes y cobros.
+        </p>
         <hr class="firma" />
       </header>
       <div class="empty-full">
         <p class="empty-icon">📋</p>
         <p class="empty-title">Todavía no hay clientes cargados</p>
-        <p class="empty-text">Convertí el Excel desde la pestaña <strong>Datos</strong> para importar la lista de clientes.</p>
+        <p class="empty-text">
+          Convertí el Excel desde la pestaña <strong>Datos</strong> para
+          importar la lista de clientes.
+        </p>
       </div>
     </template>
 
@@ -388,12 +527,31 @@ const badgeClass = (status) => {
             <div class="lista-header-top">
               <h2 class="lista-title">Clientes</h2>
               <span class="lista-count">{{ filtered.length }}</span>
-              <button class="btn-toggle" type="button" @click="verTodos = !verTodos">{{ verTodos ? 'Todos' : 'Activos' }}</button>
+              <button
+                class="btn-toggle"
+                type="button"
+                @click="verTodos = !verTodos"
+              >
+                {{ verTodos ? "Todos" : "Activos" }}
+              </button>
             </div>
             <div class="lista-actions">
-              <button class="btn-action-gold" type="button" @click="showCrearModal = true">+ Agregar cliente</button>
-              <button class="btn-action-ruta" type="button" @click="showRutaPanel = true">
-                Rutas <span v-if="clientesEnRuta.length" class="ruta-count">{{ clientesEnRuta.length }}</span>
+              <button
+                class="btn-action-gold"
+                type="button"
+                @click="showCrearModal = true"
+              >
+                + Agregar cliente
+              </button>
+              <button
+                class="btn-action-ruta"
+                type="button"
+                @click="showRutaPanel = true"
+              >
+                Rutas
+                <span v-if="clientesEnRuta.length" class="ruta-count">{{
+                  clientesEnRuta.length
+                }}</span>
               </button>
             </div>
           </header>
@@ -411,15 +569,26 @@ const badgeClass = (status) => {
               :class="{ selected: selectedId === c.ID_Cliente }"
               @click="selectedId = c.ID_Cliente"
             >
-              <span class="status-dot" :class="'dot-' + clienteStatusDisplay(c).status" aria-hidden="true"></span>
+              <span
+                class="status-dot"
+                :class="'dot-' + clienteStatusDisplay(c).status"
+                aria-hidden="true"
+              ></span>
               <span class="row-text">
                 <span class="row-name">{{ c.Nombre }}</span>
                 <span class="row-sub">{{ clienteStatusDisplay(c).label }}</span>
               </span>
             </li>
           </ul>
-          <p v-else class="empty-text-sm">{{ search ? 'Sin resultados' : 'Sin clientes' }}</p>
-          <button v-if="hasMore" class="btn-ver-mas" type="button" @click="verMas">
+          <p v-else class="empty-text-sm">
+            {{ search ? "Sin resultados" : "Sin clientes" }}
+          </p>
+          <button
+            v-if="hasMore"
+            class="btn-ver-mas"
+            type="button"
+            @click="verMas"
+          >
             Ver más ({{ filtered.length - visibleCount }})
           </button>
         </aside>
@@ -433,10 +602,26 @@ const badgeClass = (status) => {
           <div class="ficha-header">
             <div class="ficha-name-row">
               <h2 class="ficha-name">{{ selected.Nombre }}</h2>
-              <span :class="badgeClass(clienteStatusDisplay(selected).status)">{{ clienteStatusDisplay(selected).label }}</span>
+              <span
+                :class="badgeClass(clienteStatusDisplay(selected).status)"
+                >{{ clienteStatusDisplay(selected).label }}</span
+              >
             </div>
             <div v-if="selected.Direccion" class="ficha-address">
-              <svg class="pin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <svg
+                class="pin-icon"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
               <span>{{ selected.Direccion }}</span>
             </div>
           </div>
@@ -450,28 +635,66 @@ const badgeClass = (status) => {
             <div class="card summary-card">
               <p class="summary-label">Fecha de cobro</p>
               <template v-if="!editandoCobro">
-                <p class="summary-value" :class="{ 'text-danger': clienteStatusDisplay(selected).status === 'atrasado' }">
-                  {{ selected.Fecha_Cobro || 'Sin fecha' }}
+                <p
+                  class="summary-value"
+                  :class="{
+                    'text-danger':
+                      clienteStatusDisplay(selected).status === 'atrasado',
+                  }"
+                >
+                  {{ selected.Fecha_Cobro || "Sin fecha" }}
                 </p>
-                <p v-if="selected.Monto" class="summary-monto num">{{ selected.Monto }}</p>
-                <div class="field-actions" style="flex-wrap: wrap;">
-                  <button v-if="selected.Fecha_Cobro" class="btn btn-success btn-sm" @click="marcarCobrado">Marcar cobrado</button>
-                  <button v-if="selected.Etapa_Embudo === 'Seguimiento'" class="btn btn-gold btn-sm" @click="marcarAlDia">Marcar al día</button>
-                  <button class="btn-link" @click="abrirEditarCobro">Editar cobro</button>
+                <p v-if="selected.Monto" class="summary-monto num">
+                  {{ montoFormateado }}
+                </p>
+                <div class="field-actions" style="flex-wrap: wrap">
+                  <button
+                    v-if="selected.Fecha_Cobro"
+                    class="btn btn-success btn-sm"
+                    @click="marcarCobrado"
+                  >
+                    Marcar cobrado
+                  </button>
+                  <button
+                    v-if="selected.Etapa_Embudo === 'Seguimiento'"
+                    class="btn btn-gold btn-sm"
+                    @click="marcarAlDia"
+                  >
+                    Marcar al día
+                  </button>
+                  <button class="btn-link" @click="abrirEditarCobro">
+                    Cobro
+                  </button>
                 </div>
               </template>
               <template v-else>
                 <label class="field">
                   <span class="field-label">Fecha</span>
-                  <input v-model="cobroForm.Fecha_Cobro" class="input" type="date" />
+                  <input
+                    v-model="cobroForm.Fecha_Cobro"
+                    class="input"
+                    type="date"
+                  />
                 </label>
                 <label class="field">
                   <span class="field-label">Monto</span>
-                  <input v-model="cobroForm.Monto" class="input" type="number" placeholder="0" />
+                  <input
+                    v-model="cobroForm.Monto"
+                    class="input"
+                    type="number"
+                    placeholder="0"
+                  />
                 </label>
                 <div class="field-actions">
-                  <button class="btn btn-gold-outline btn-sm" @click="guardarCobro">Guardar</button>
-                  <button class="btn btn-ghost btn-sm" @click="cancelarCobro">Cancelar</button>
+                  <button
+                    class="btn btn-gold-outline btn-sm"
+                    @click="guardarCobro"
+                  >
+                    Guardar
+                  </button>
+                  <button class="btn btn-ghost btn-sm" @click="cancelarCobro">
+                    Cancelar
+                  </button>
                 </div>
               </template>
             </div>
@@ -479,20 +702,37 @@ const badgeClass = (status) => {
               <p class="summary-label">Fecha de visita</p>
               <template v-if="!editandoVisita">
                 <p class="summary-value">
-                  {{ selected.Fecha_Visita ? formatFecha(selected.Fecha_Visita) : 'Sin visita registrada' }}
+                  {{
+                    selected.Fecha_Visita
+                      ? formatFecha(selected.Fecha_Visita)
+                      : "Sin visita registrada"
+                  }}
                 </p>
                 <button class="btn-link" @click="abrirEditarVisita">
-                  {{ selected.Fecha_Visita ? 'Editar visita' : 'Registrar visita' }}
+                  {{
+                    selected.Fecha_Visita ? "Editar visita" : "Registrar visita"
+                  }}
                 </button>
               </template>
               <template v-else>
                 <label class="field">
                   <span class="field-label">Fecha</span>
-                  <input v-model="visitaForm.Fecha_Visita" class="input" type="date" />
+                  <input
+                    v-model="visitaForm.Fecha_Visita"
+                    class="input"
+                    type="date"
+                  />
                 </label>
                 <div class="field-actions">
-                  <button class="btn btn-gold-outline btn-sm" @click="guardarVisita">Guardar</button>
-                  <button class="btn btn-ghost btn-sm" @click="cancelarVisita">Cancelar</button>
+                  <button
+                    class="btn btn-gold-outline btn-sm"
+                    @click="guardarVisita"
+                  >
+                    Guardar
+                  </button>
+                  <button class="btn btn-ghost btn-sm" @click="cancelarVisita">
+                    Cancelar
+                  </button>
                 </div>
               </template>
             </div>
@@ -500,20 +740,40 @@ const badgeClass = (status) => {
               <p class="summary-label">Dirección del cliente</p>
               <template v-if="!editandoDireccion">
                 <p class="summary-value">
-                  {{ selected.Direccion ? selected.Direccion : 'Sin dirección cargada' }}
+                  {{
+                    selected.Direccion
+                      ? selected.Direccion
+                      : "Sin dirección cargada"
+                  }}
                 </p>
                 <button class="btn-link" @click="abrirEditarDireccion">
-                  {{ selected.Direccion ? 'Editar dirección' : 'Cargar dirección' }}
+                  {{
+                    selected.Direccion ? "Editar dirección" : "Cargar dirección"
+                  }}
                 </button>
               </template>
               <template v-else>
                 <label class="field">
                   <span class="field-label">Dirección</span>
-                  <input v-model="direccionForm.Direccion" class="input" type="text" />
+                  <input
+                    v-model="direccionForm.Direccion"
+                    class="input"
+                    type="text"
+                  />
                 </label>
                 <div class="field-actions">
-                  <button class="btn btn-gold-outline btn-sm" @click="guardarDireccion">Guardar</button>
-                  <button class="btn btn-ghost btn-sm" @click="cancelarDireccion">Cancelar</button>
+                  <button
+                    class="btn btn-gold-outline btn-sm"
+                    @click="guardarDireccion"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    @click="cancelarDireccion"
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </template>
             </div>
@@ -525,10 +785,43 @@ const badgeClass = (status) => {
             <hr class="firma-sm" />
             <div v-if="clienteReportes.length" class="file-list">
               <div v-for="r in clienteReportes" :key="r" class="file-row">
-                <svg class="file-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <svg
+                  class="file-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
                 <span class="file-name">{{ r }}</span>
-                <button class="link-btn" type="button" title="Descargar Word" @click="downloadReportDocx(r)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <button
+                  class="link-btn"
+                  type="button"
+                  title="Descargar Word"
+                  @click="downloadReportDocx(r)"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -563,15 +856,36 @@ const badgeClass = (status) => {
               :class="enRuta.has(selected.ID_Cliente) ? 'btn-ruta-active' : ''"
               @click="toggleEnRuta(selected.ID_Cliente)"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
-              {{ enRuta.has(selected.ID_Cliente) ? 'Quitar de ruta' : 'Agregar a ruta' }}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="6" cy="19" r="3" />
+                <path
+                  d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"
+                />
+                <circle cx="18" cy="5" r="3" />
+              </svg>
+              {{
+                enRuta.has(selected.ID_Cliente)
+                  ? "Quitar de ruta"
+                  : "Agregar a ruta"
+              }}
             </button>
           </div>
         </main>
 
         <!-- Sin selección -->
         <main v-else class="ficha-panel ficha-empty">
-          <p class="section-empty">Seleccioná un cliente de la lista para ver su ficha.</p>
+          <p class="section-empty">
+            Seleccioná un cliente de la lista para ver su ficha.
+          </p>
         </main>
       </div>
     </template>
@@ -579,34 +893,109 @@ const badgeClass = (status) => {
     <!-- ── Route panel ── -->
     <Teleport to="body">
       <Transition name="modal">
-        <div v-if="showRutaPanel" class="modal-backdrop" @mousedown="(e) => { if (e.target === e.currentTarget) showRutaPanel = false }">
+        <div
+          v-if="showRutaPanel"
+          class="modal-backdrop"
+          @mousedown="
+            (e) => {
+              if (e.target === e.currentTarget) showRutaPanel = false;
+            }
+          "
+        >
           <div class="modal-card ruta-modal">
-            <h3 class="modal-title">Rutas <span class="ruta-count">{{ clientesEnRuta.length }}</span></h3>
+            <h3 class="modal-title">
+              Rutas <span class="ruta-count">{{ clientesEnRuta.length }}</span>
+            </h3>
             <hr class="firma-sm" />
-            <p v-if="clientesEnRuta.length === 0" class="empty-text-sm">Agrega clientes a la ruta desde su ficha.</p>
+            <p v-if="clientesEnRuta.length === 0" class="empty-text-sm">
+              Agrega clientes a la ruta desde su ficha.
+            </p>
             <ul v-else class="ruta-list">
-              <li v-for="(c, idx) in clientesEnRuta" :key="c.ID_Cliente" class="ruta-item">
+              <li
+                v-for="(c, idx) in clientesEnRuta"
+                :key="c.ID_Cliente"
+                class="ruta-item"
+              >
                 <span class="ruta-num">{{ idx + 1 }}</span>
                 <div class="ruta-info">
                   <span class="ruta-name">{{ c.Nombre }}</span>
-                  <span class="ruta-addr">{{ c.Direccion || 'Sin direccion' }}</span>
+                  <span class="ruta-addr">{{
+                    c.Direccion || "Sin direccion"
+                  }}</span>
                 </div>
                 <div class="ruta-actions">
-                  <button class="ruta-reorder" type="button" title="Subir" :disabled="idx === 0" @click="moverRuta(idx, -1)">&#9650;</button>
-                  <button class="ruta-reorder" type="button" title="Bajar" :disabled="idx === clientesEnRuta.length - 1" @click="moverRuta(idx, 1)">&#9660;</button>
-                  <button class="ruta-remove" type="button" title="Quitar" @click="removeFromRuta(c.ID_Cliente)">&#10005;</button>
+                  <button
+                    class="ruta-reorder"
+                    type="button"
+                    title="Subir"
+                    :disabled="idx === 0"
+                    @click="moverRuta(idx, -1)"
+                  >
+                    &#9650;
+                  </button>
+                  <button
+                    class="ruta-reorder"
+                    type="button"
+                    title="Bajar"
+                    :disabled="idx === clientesEnRuta.length - 1"
+                    @click="moverRuta(idx, 1)"
+                  >
+                    &#9660;
+                  </button>
+                  <button
+                    class="ruta-remove"
+                    type="button"
+                    title="Quitar"
+                    @click="removeFromRuta(c.ID_Cliente)"
+                  >
+                    &#10005;
+                  </button>
                 </div>
               </li>
             </ul>
             <div class="ruta-footer">
-              <p v-if="sinDireccionEnRuta" class="ruta-aviso">
-                {{ sinDireccionEnRuta === 1
-                  ? '1 cliente quedó fuera por no tener dirección'
-                  : `${sinDireccionEnRuta} clientes quedaron fuera por no tener dirección` }}
+              <p v-if="sinDireccionEnRuta" class="ruta-aviso ruta-aviso-warn">
+                ⚠️ {{
+                  sinDireccionEnRuta === 1
+                    ? `1 cliente quedó fuera por no tener dirección:`
+                    : `${sinDireccionEnRuta} clientes quedaron fuera por no tener dirección:`
+                }}
+                <span
+                  v-for="c in clientesEnRuta.filter((c) => !String(c.Direccion || '').trim())"
+                  :key="c.ID_Cliente"
+                  class="ruta-aviso-nombre"
+                >{{ c.Nombre }}</span>
               </p>
-              <a v-if="rutaUrl" :href="rutaUrl" target="_blank" rel="noopener" class="btn btn-gold-outline btn-sm">Abrir en Google Maps</a>
-              <button v-if="clientesEnRuta.length" class="btn btn-ghost btn-sm" @click="vaciarRuta">Vaciar ruta</button>
-              <button class="btn btn-ghost btn-sm" @click="showRutaPanel = false">Cerrar</button>
+              <p
+                v-if="rutaSegmentos.length > 1"
+                class="ruta-aviso"
+              >
+                Ruta: {{ rutaSegmentos.length }} secciones ({{
+                  rutaSegmentos.map((s) => s.count).join(" + ")
+                }} clientes)
+              </p>
+              <template v-for="(seg, si) in rutaSegmentos" :key="si">
+                <a
+                  :href="seg.url"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn btn-gold-outline btn-sm"
+                  >{{ seg.label }}</a
+                >
+              </template>
+              <button
+                v-if="clientesEnRuta.length"
+                class="btn btn-ghost btn-sm"
+                @click="vaciarRuta"
+              >
+                Vaciar ruta
+              </button>
+              <button
+                class="btn btn-ghost btn-sm"
+                @click="showRutaPanel = false"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
@@ -614,7 +1003,12 @@ const badgeClass = (status) => {
     </Teleport>
 
     <!-- ── Crear cliente modal ── -->
-    <ClienteFormModal :abierto="showCrearModal" @close="showCrearModal = false" @crear="crearClienteSubmit" />
+    <ClienteFormModal
+      :abierto="showCrearModal"
+      @close="showCrearModal = false"
+      @crear="crearClienteSubmit"
+    />
+
   </section>
 </template>
 
@@ -780,9 +1174,15 @@ const badgeClass = (status) => {
   border-radius: 50%;
 }
 
-.dot-atrasado { background: var(--status-danger); }
-.dot-esta-semana { background: var(--status-warning); }
-.dot-al-dia { background: var(--status-success); }
+.dot-atrasado {
+  background: var(--status-danger);
+}
+.dot-esta-semana {
+  background: var(--status-warning);
+}
+.dot-al-dia {
+  background: var(--status-success);
+}
 
 .row-text {
   display: flex;
@@ -907,16 +1307,19 @@ const badgeClass = (status) => {
   color: var(--accent-gold);
 }
 
-.text-danger { color: var(--status-danger); }
+.text-danger {
+  color: var(--status-danger);
+}
 
 /* ── Button link ── */
 .btn-link {
-  background: none;
+  background: var(--bg-elevated);
   border: none;
+  border-radius: 5px;
   color: var(--accent-gold);
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 0;
+  padding: 4px 20px;
   cursor: pointer;
   margin-top: 6px;
 }
@@ -979,7 +1382,11 @@ const badgeClass = (status) => {
 .firma-sm {
   height: 1px;
   border: 0;
-  background: linear-gradient(90deg, var(--accent-gold), rgba(201, 162, 39, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--accent-gold),
+    rgba(201, 162, 39, 0) 100%
+  );
   opacity: 0.5;
   margin: 0 0 14px;
 }
@@ -1210,7 +1617,11 @@ const badgeClass = (status) => {
 .firma-sm {
   height: 1px;
   border: 0;
-  background: linear-gradient(90deg, var(--accent-gold), rgba(201, 162, 39, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--accent-gold),
+    rgba(201, 162, 39, 0) 100%
+  );
   opacity: 0.5;
   margin: 0 0 16px;
 }
@@ -1324,6 +1735,18 @@ const badgeClass = (status) => {
   font-size: 12px;
   color: var(--status-warning);
 }
+.ruta-aviso-warn {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.ruta-aviso-nombre {
+  display: inline-block;
+  margin-left: 4px;
+  font-weight: 600;
+}
 
 /* Transiciones */
 .modal-enter-active,
@@ -1333,7 +1756,9 @@ const badgeClass = (status) => {
 
 .modal-enter-active .modal-card,
 .modal-leave-active .modal-card {
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .modal-enter-from,
@@ -1360,7 +1785,7 @@ const badgeClass = (status) => {
   .lista-panel {
     width: 100%;
     min-width: 100%;
-    max-height: 440px;
+    max-height: 500px;
   }
 
   .btn-action-gold,

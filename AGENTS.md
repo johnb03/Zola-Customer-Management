@@ -196,7 +196,13 @@ Calendario de citas con clientes (CRUD interno).
   `https://www.google.com/maps/dir/?api=1&destination=ULTIMO&waypoints=C1|C2|C3&travelmode=driving`
   NOTA: NO usar el formato slash multiescala `dir//A/B/C/` — solo funciona en
   la web, la app de Google Maps no arma la ruta multi-parada con ese formato.
-  Límite de 9 waypoints en la app (rutas típicas de 1-5, sin problema).
+- **Límite de waypoints por plataforma (api=1):** mobile browser soporta
+  máximo **3 waypoints** (4 paradas totales incl. destino); la app de Google
+  Maps soporta hasta 9 waypoints. Para respetar el límite del mobile browser,
+  la ruta se **segmenta automáticamente**: si hay más de 4 clientes con
+  dirección, se generan tantos links como secciones de 4 hagan falta (cada
+  link con su propio destino = último cliente de la sección). Cada sección
+  se muestra como un botón "Sección N (inicio–fin de total)".
 - Si un cobro no se completa ese día, NO lo reprogrames automáticamente —
   el usuario define manualmente la nueva fecha, por diseño (así mantiene
   control sobre cuándo reintentar).
