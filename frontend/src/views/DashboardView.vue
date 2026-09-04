@@ -230,6 +230,15 @@ const clientesSinVisitar = computed(() => {
     .map((c) => {
       const nombreLower = (c.Nombre || '').toLowerCase()
       let mostRecent = null
+      // 1) Si el cliente registró fecha de visita en su ficha (ClientesView),
+      //    esa es una fuente directa de cuándo se lo visitó.
+      const fv = c.Fecha_Visita
+      if (fv) {
+        const d = parseFecha(fv)
+        if (d && (!mostRecent || d > mostRecent)) mostRecent = d
+      }
+      // 2) Si hay un registro en el store de visitas con el mismo nombre,
+      //    usar la más reciente de esas fechas.
       for (const v of visitasList) {
         if ((v.Establecimiento || '').toLowerCase() === nombreLower) {
           const d = parseFecha(v.Fecha)
