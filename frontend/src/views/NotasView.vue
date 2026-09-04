@@ -58,6 +58,20 @@ const cargarNotas = async () => {
 
 onMounted(cargarNotas);
 
+// --- Color de card estilo Google Keep (estable por ID_Nota) ---
+const cardPalette = [
+  "card-gold",
+  "card-wine",
+  "card-olive",
+  "card-neutral",
+];
+const colorDeNota = (nota) => {
+  const id = String(nota?.ID_Nota ?? "");
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return cardPalette[h % cardPalette.length];
+};
+
 // --- Editor ---
 const abrirNueva = () => {
   editando.value = null;
@@ -352,11 +366,11 @@ const cerrarPreview = () => {
     </div>
 
     <!-- Notes grid -->
-    <div v-else class="notes-grid">
+    <TransitionGroup v-else name="keep-card" tag="div" class="notes-grid">
       <div
         v-for="nota in notasFiltradas"
         :key="nota.ID_Nota"
-        class="nota-card"
+        :class="['nota-card', colorDeNota(nota)]"
         @click="abrirEditar(nota)"
       >
         <span v-if="nota.Convertida" class="badge-convertida">
@@ -379,6 +393,7 @@ const cerrarPreview = () => {
         </span>
         <p class="nota-text">{{ nota.Contenido }}</p>
         <div class="nota-footer">
+          <span class="nota-fecha">{{ nota.Fecha }}</span>
           <div class="nota-actions">
             <button
               class="card-action-btn delete-card-btn"
@@ -402,10 +417,12 @@ const cerrarPreview = () => {
           </div>
         </div>
       </div>
-    </div>
+    </TransitionGroup>
 
-    <!-- Editor modal -->
-    <div v-if="showEditor" class="modal-overlay" @click.self="cerrarEditor">
+    <!-- Editor modal (estilo Google Keep: ventana emergente animada) -->
+    <Teleport to="body">
+      <Transition name="keep-modal">
+        <div v-if="showEditor" class="modal-overlay" @click.self="cerrarEditor">
       <div class="editor-modal">
         <div class="editor-header">
           <button class="close-btn" @click="cerrarEditor">
@@ -464,7 +481,9 @@ const cerrarPreview = () => {
           </button>
         </div>
       </div>
-    </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Conversion flow (timeline) -->
     <ConversionFlow
@@ -484,6 +503,23 @@ const cerrarPreview = () => {
       @close="cerrarPreview"
       @confirm="confirmarConversion"
     />
+
+    <!-- FAB: crear nota (estilo Google Keep) -->
+    <button class="keep-fab" @click="abrirNueva" title="Nueva nota">
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14" />
+        <path d="M12 5v14" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -618,7 +654,7 @@ const cerrarPreview = () => {
 }
 
 .nota-card {
-  height: 180px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -628,10 +664,63 @@ const cerrarPreview = () => {
   border: 0.5px solid var(--border);
   cursor: pointer;
   overflow: hidden;
-  transition: border-color 120ms;
+  transition: border-color 120ms, transform 120ms, box-shadow 120ms;
+  position: relative;
 }
 .nota-card:hover {
   border-color: var(--accent-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Colores de card estilo Google Keep (acentos tenues de la paleta Zola) */
+.nota-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 12px;
+  opacity: 0.9;
+}
+.card-gold::before {
+  background: linear-gradient(160deg, rgba(201, 162, 39, 0.16), rgba(201, 162, 39, 0.05));
+}
+.card-wine::before {
+  background: linear-gradient(160deg, rgba(146, 43, 33, 0.20), rgba(146, 43, 33, 0.06));
+}
+.card-olive::before {
+  background: linear-gradient(160deg, rgba(122, 138, 83, 0.20), rgba(122, 138, 83, 0.06));
+}
+.card-neutral::before {
+  background: rgba(168, 154, 133, 0.06);
+}
+.nota-card > * {
+  position: relative;
+}
+
+/* Transición de entrada/salida de las cards (TransitionGroup) */
+.keep-card-move, .keep-card-enter-active, .keep-card-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.keep-card-enter-from {
+  opacity: 0;
+  transform: scale(0.92) translateY(8px);
+}
+.keep-card-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.keep-card-leave-active {
+  position: absolute;
+  width: 100%;
+}
+
+/* Fecha de la nota en la card */
+.nota-fecha {
+  font-family: "Satoshi", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .badge-convertida {
@@ -664,7 +753,7 @@ const cerrarPreview = () => {
 
 .nota-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
 }
 
@@ -839,6 +928,52 @@ const cerrarPreview = () => {
   cursor: not-allowed;
 }
 
+/* --- FAB crear nota (estilo Google Keep) --- */
+.keep-fab {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-gold);
+  color: var(--bg-base);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 120ms, opacity 120ms;
+  z-index: 10;
+}
+.keep-fab:hover {
+  transform: scale(1.06);
+  opacity: 0.95;
+}
+
+/* --- Transición del editor modal (ventana emergente fluida) --- */
+.keep-modal-enter-active,
+.keep-modal-leave-active {
+  transition: opacity 180ms ease;
+}
+.keep-modal-enter-active .editor-modal,
+.keep-modal-leave-active .editor-modal {
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.keep-modal-enter-from,
+.keep-modal-leave-to {
+  opacity: 0;
+}
+.keep-modal-enter-from .editor-modal {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+.keep-modal-leave-to .editor-modal {
+  transform: scale(0.97);
+  opacity: 0;
+}
+
 /* --- Responsive --- */
 @media (max-width: 1024px) {
   .notes-grid {
@@ -888,6 +1023,13 @@ const cerrarPreview = () => {
   }
   .nota-footer {
     gap: 8px;
+  }
+
+  .keep-fab {
+    right: 18px;
+    bottom: 18px;
+    width: 54px;
+    height: 54px;
   }
 
   .badge-convertida {
