@@ -544,6 +544,7 @@ const autoEstatusDesdeVisitas = async (records) => {
           Motivo: `Seguimiento automático desde visita ${fecha}`,
           Estado: 'pendiente',
           Origen: 'auto-estatus',
+          ID_Cliente: cliente.ID_Cliente,
         })
       }
       updated++
@@ -577,11 +578,13 @@ export const crearCliente = async (cliente) => {
 
 export const actualizarCliente = (id, cambios) => db.clientes.update(id, cambios)
 
-export const cobrarCliente = async (id) => {
+export const cobrarCliente = async (id, etapaFinal = 'Cobrado') => {
   const cliente = await db.clientes.getById(id)
   if (!cliente) throw new Error('Cliente no encontrado')
-  cliente.Etapa_Embudo = 'Cobrado'
+  const monto = normalizarMonto(cliente.Monto)
+  cliente.Etapa_Embudo = etapaFinal
   cliente.Fecha_Cobro = ''
+  cliente.Monto = ''
   await db.clientes.save(cliente)
 
   // Registrar el cobro en el store de cobros (para Dashboard "Dinero cobrado")
@@ -590,7 +593,7 @@ export const cobrarCliente = async (id) => {
   await db.cobros.save({
     ID_Cobro: idCobro,
     Fecha_Cobrado: hoy,
-    Monto: Number(cliente.Monto || 0),
+    Monto: monto,
     Establecimiento: cliente.Nombre || '',
     Cliente_ID: cliente.ID_Cliente,
   })

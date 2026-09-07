@@ -7,10 +7,12 @@ import {
   downloadReportDocx,
   crearCliente,
   cobrarCliente,
+  crearCita,
 } from "../api.js";
 import { dataVersion, notifyDataChanged } from "../store.js";
 import { confirmar } from "../composables/useConfirm.js";
 import { alerta } from "../composables/useAlert.js";
+import { formatearMonto, normalizarMonto } from "../utils/dinero.js";
 import ClienteFormModal from "../components/ClienteFormModal.vue";
 
 /* ── State ── */
@@ -22,19 +24,19 @@ const search = ref("");
 const editandoCobro = ref(false);
 const cobroForm = reactive({ Fecha_Cobro: "", Monto: "" });
 
-const fmtDinero = (v) => {
-  const n = Number(String(v).replace(/[^0-9.,-]/g, "").replace(",", "."));
-  if (!n && n !== 0) return "";
-  return n.toLocaleString("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
+/* ── Crear cita desde la ficha ── */
+const editandoCita = ref(false);
+const guardandoCita = ref(false);
+const citaForm = reactive({
+  Fecha: new Date().toISOString().slice(0, 10),
+  Hora: "",
+  Notas: "",
+});
 
 const montoFormateado = computed(() => {
   const v = selected.value?.Monto;
   if (v == null || v === "") return "";
-  return `$${fmtDinero(v)}`;
+  return `$${formatearMonto(v)}`;
 });
 const verTodos = ref(false);
 const showCrearModal = ref(false);
@@ -179,6 +181,7 @@ watch(dataVersion, cargar);
 const activeStages = new Set([
   "cliente activo",
   "cliente potencial",
+  "pendiente",
   "seguimiento",
   "cobro",
   "cobrado",
@@ -238,7 +241,7 @@ const clienteStatusDisplay = (cliente) => {
   const s = String(cliente?.Etapa_Embudo || "").toLowerCase();
   if (["cliente activo", "cliente"].includes(s))
     return { status: "al-dia", label: "Al día" };
-  if (["propuesta enviada", "contactado", "cliente potencial"].includes(s))
+  if (["propuesta enviada", "contactado", "cliente potencial", "pendiente"].includes(s))
     return { status: "esta-semana", label: "Pendiente" };
   if (["no interesado", "inactivo"].includes(s))
     return { status: "atrasado", label: "Inactivo" };
@@ -291,8 +294,9 @@ const ultimoReporteFecha = computed(() => {
 
 /* ── Editar cobro ── */
 const abrirEditarCobro = () => {
-  cobroForm.Fecha_Cobro = selected.value?.Fecha_Cobro || "";
-  cobroForm.Monto = selected.value?.Monto ?? "";
+  cobroForm.Fecha_Cobro =
+    selected.value?.Fecha_Cobro || new Date().toISOString().slice(0, 10);
+  cobroForm.Monto = selected.value?.Monto != null ? String(selected.value.Monto) : "";
   editandoCobro.value = true;
 };
 
@@ -301,7 +305,7 @@ const guardarCobro = async () => {
   try {
     const updates = {
       Fecha_Cobro: cobroForm.Fecha_Cobro,
-      Monto: cobroForm.Monto,
+      Monto: normalizarMonto(cobroForm.Monto),
     };
     const updated = await actualizarCliente(selected.value.ID_Cliente, updates);
     const idx = clientes.value.findIndex(
@@ -410,19 +414,47 @@ const marcarCobrado = async () => {
   if (!selected.value) return;
   const ok = await confirmar({
     titulo: "Marcar cobrado",
-    mensaje: `¿Registrar el cobro de ${selected.value.Nombre} por $${fmtDinero(selected.value.Monto || "0")} y volverlo a "Al día"?`,
+    mensaje: `¿Registrar el cobro programado de ${selected.value.Nombre} por $${formatearMonto(selected.value.Monto || "0")}? El cliente vuelve a "Al día".`,
   });
   if (!ok) return;
   try {
     marcandoCobro.value = true;
-    await cobrarCliente(selected.value.ID_Cliente);
+    await cobrarCliente(selected.value.ID_Cliente, "Cliente activo");
     await cargar();
     notifyDataChanged();
-    alerta({ mensaje: "Cobro registrado. Cliente al día.", tipo: "success" });
+    alerta({
+      mensaje: `Cobro registrado. ${selected.value.Nombre} al día.`,
+      tipo: "success",
+    });
   } catch (e) {
     alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
   } finally {
     marcandoCobro.value = false;
+  }
+};
+
+/* ── Cobrar directo (cliente sin cobro programado que paga igual) ── */
+const cobrandoDirecto = ref(false);
+const cobrarDirecto = async () => {
+  if (!selected.value) return;
+  const ok = await confirmar({
+    titulo: "Cobrar",
+    mensaje: `¿Registrar el pago directo de ${selected.value.Nombre} por $${formatearMonto(selected.value.Monto || "0")} y dejarlo al día?`,
+  });
+  if (!ok) return;
+  try {
+    cobrandoDirecto.value = true;
+    await cobrarCliente(selected.value.ID_Cliente, "Cliente activo");
+    await cargar();
+    notifyDataChanged();
+    alerta({
+      mensaje: `Pago registrado. ${selected.value.Nombre} al día.`,
+      tipo: "success",
+    });
+  } catch (e) {
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
+  } finally {
+    cobrandoDirecto.value = false;
   }
 };
 
@@ -444,6 +476,49 @@ const marcarAlDia = async () => {
     });
   } catch (e) {
     alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
+  }
+};
+
+/* ── Crear cita desde la ficha ── */
+const abrirCrearCita = () => {
+  citaForm.Fecha = new Date().toISOString().slice(0, 10);
+  citaForm.Hora = "";
+  citaForm.Notas = "";
+  editandoCita.value = true;
+};
+
+const cancelarCrearCita = () => {
+  editandoCita.value = false;
+};
+
+const guardarCita = async () => {
+  if (!selected.value) return;
+  if (!citaForm.Fecha) return;
+  try {
+    guardandoCita.value = true;
+    // Mismo formato de payload que nuevaCita de CitasView
+    const payload = {
+      Fecha: citaForm.Fecha,
+      Establecimiento: selected.value.Nombre,
+      Motivo: citaForm.Notas,
+      ID_Cliente: selected.value.ID_Cliente,
+    };
+    if (citaForm.Hora) payload.Hora = citaForm.Hora;
+    await crearCita(payload);
+    await actualizarCliente(selected.value.ID_Cliente, {
+      Etapa_Embudo: "Pendiente",
+    });
+    editandoCita.value = false;
+    await cargar();
+    notifyDataChanged();
+    alerta({
+      mensaje: `Cita creada para ${selected.value.Nombre} · estatus Pendiente`,
+      tipo: "success",
+    });
+  } catch (e) {
+    alerta({ titulo: "Error", mensaje: e.message, tipo: "error" });
+  } finally {
+    guardandoCita.value = false;
   }
 };
 
@@ -606,6 +681,14 @@ const badgeClass = (status) => {
                 :class="badgeClass(clienteStatusDisplay(selected).status)"
                 >{{ clienteStatusDisplay(selected).label }}</span
               >
+              <button
+                v-if="!editandoCita"
+                class="btn btn-gold btn-sm"
+                style="margin-left: auto"
+                @click="abrirCrearCita"
+              >
+                Crear cita
+              </button>
             </div>
             <div v-if="selected.Direccion" class="ficha-address">
               <svg
@@ -623,6 +706,37 @@ const badgeClass = (status) => {
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <span>{{ selected.Direccion }}</span>
+            </div>
+            <div v-if="editandoCita" class="cita-form-inline">
+              <label class="field">
+                <span class="field-label">Fecha</span>
+                <input v-model="citaForm.Fecha" class="input" type="date" />
+              </label>
+              <label class="field">
+                <span class="field-label">Hora</span>
+                <input v-model="citaForm.Hora" class="input" type="time" />
+              </label>
+              <label class="field cita-form-notas">
+                <span class="field-label">Notas</span>
+                <input
+                  v-model="citaForm.Notas"
+                  class="input"
+                  type="text"
+                  placeholder="Comentario de la cita"
+                />
+              </label>
+              <div class="field-actions">
+                <button
+                  class="btn btn-success btn-sm"
+                  :disabled="guardandoCita"
+                  @click="guardarCita"
+                >
+                  Guardar cita
+                </button>
+                <button class="btn btn-ghost btn-sm" @click="cancelarCrearCita">
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
 
@@ -649,8 +763,21 @@ const badgeClass = (status) => {
                 </p>
                 <div class="field-actions" style="flex-wrap: wrap">
                   <button
+                    class="btn btn-success btn-sm"
+                    :disabled="
+                      cobrandoDirecto ||
+                      !(normalizarMonto(selected.Monto) > 0)
+                    "
+                    @click="cobrarDirecto"
+                  >
+                    Cobrar
+                  </button>
+                  <button
                     v-if="selected.Fecha_Cobro"
                     class="btn btn-success btn-sm"
+                    :disabled="
+                      marcandoCobro || !(normalizarMonto(selected.Monto) > 0)
+                    "
                     @click="marcarCobrado"
                   >
                     Marcar cobrado
@@ -662,7 +789,7 @@ const badgeClass = (status) => {
                   >
                     Marcar al día
                   </button>
-                  <button class="btn-link" @click="abrirEditarCobro">
+                  <button class="btn btn-ghost btn-sm" @click="abrirEditarCobro">
                     Cobro
                   </button>
                 </div>
@@ -681,8 +808,9 @@ const badgeClass = (status) => {
                   <input
                     v-model="cobroForm.Monto"
                     class="input"
-                    type="number"
-                    placeholder="0"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="0,00"
                   />
                 </label>
                 <div class="field-actions">
@@ -708,7 +836,7 @@ const badgeClass = (status) => {
                       : "Sin visita registrada"
                   }}
                 </p>
-                <button class="btn-link" @click="abrirEditarVisita">
+                <button class="btn btn-ghost btn-sm" @click="abrirEditarVisita">
                   {{
                     selected.Fecha_Visita ? "Editar visita" : "Registrar visita"
                   }}
@@ -746,7 +874,7 @@ const badgeClass = (status) => {
                       : "Sin dirección cargada"
                   }}
                 </p>
-                <button class="btn-link" @click="abrirEditarDireccion">
+                <button class="btn btn-ghost btn-sm" @click="abrirEditarDireccion">
                   {{
                     selected.Direccion ? "Editar dirección" : "Cargar dirección"
                   }}
@@ -1275,6 +1403,34 @@ const badgeClass = (status) => {
   flex-shrink: 0;
 }
 
+/* ── Mini-form "Crear cita" en el header de la ficha ── */
+.cita-form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.cita-form-inline .field {
+  flex: 1 1 140px;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.cita-form-inline .field.cita-form-notas {
+  flex: 2 1 200px;
+}
+
+.cita-form-inline .field-actions {
+  margin-top: 0;
+  padding-bottom: 2px;
+}
+
 /* ── Summary cards ── */
 .summary-cards {
   display: grid;
@@ -1309,23 +1465,6 @@ const badgeClass = (status) => {
 
 .text-danger {
   color: var(--status-danger);
-}
-
-/* ── Button link ── */
-.btn-link {
-  background: var(--bg-elevated);
-  border: none;
-  border-radius: 5px;
-  color: var(--accent-gold);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 20px;
-  cursor: pointer;
-  margin-top: 6px;
-}
-
-.btn-link:hover {
-  text-decoration: underline;
 }
 
 /* ── Fields ── */

@@ -1,11 +1,12 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { confirmar } from '../composables/useConfirm.js'
+import { formatearMonto, normalizarMonto } from '../utils/dinero.js'
 
 const props = defineProps({
   cita: { type: Object, default: null },
 })
-const emit = defineEmits(['cerrar', 'completar', 'eliminar', 'guardar', 'guardarCobro'])
+const emit = defineEmits(['cerrar', 'completar', 'cobrar', 'eliminar', 'guardar', 'guardarCobro'])
 
 const esCobro = computed(() => props.cita?._tipo === 'cobro')
 
@@ -76,7 +77,7 @@ const cancelarEdicion = () => {
 
 const guardarEdicion = () => {
   if (esCobro.value) {
-    emit('guardarCobro', { Fecha_Cobro: form.value.Fecha, Monto: form.value.Monto })
+    emit('guardarCobro', { Fecha_Cobro: form.value.Fecha, Monto: normalizarMonto(form.value.Monto) })
   } else {
     emit('guardar', { Fecha: form.value.Fecha, Hora: form.value.Hora, Motivo: form.value.Motivo })
   }
@@ -85,6 +86,10 @@ const guardarEdicion = () => {
 
 const completar = () => {
   emit('completar')
+}
+
+const cobrar = () => {
+  emit('cobrar')
 }
 
 const eliminar = async () => {
@@ -115,7 +120,7 @@ const cerrar = () => emit('cerrar')
               <button v-if="!esCobro" type="button" class="cp-icon" title="Eliminar" @click="eliminar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
               </button>
-              <button v-if="!esCobro && cita.Estado === 'pendiente'" type="button" class="cp-icon cp-icon-success" title="Completar" @click="completar">
+              <button v-if="!esCobro && cita.Estado === 'pendiente'" type="button" class="cp-icon cp-icon-success" title="Visita realizada" @click="completar">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
               <button type="button" class="cp-icon" title="Cerrar" @click="cerrar">
@@ -138,7 +143,7 @@ const cerrar = () => emit('cerrar')
                 </div>
                 <div class="cp-row">
                   <span class="cp-label">Monto</span>
-                  <span class="cp-value">${{ cita.Monto || '0' }}</span>
+                  <span class="cp-value">${{ formatearMonto(cita.Monto || '0') }}</span>
                 </div>
                 <div class="cp-row">
                   <span class="cp-label">Día de cobro</span>
@@ -177,7 +182,7 @@ const cerrar = () => emit('cerrar')
               </label>
               <label v-if="esCobro" class="field">
                 <span class="field-label">Monto</span>
-                <input v-model="form.Monto" type="number" min="0" step="0.01" class="input" />
+                <input v-model="form.Monto" type="text" inputmode="decimal" class="input" placeholder="0,00" />
               </label>
               <label v-if="!esCobro" class="field">
                 <span class="field-label">Hora</span>
@@ -196,11 +201,15 @@ const cerrar = () => emit('cerrar')
             </template>
           </div>
 
-          <!-- Footer: botón completada (solo citas pendientes) -->
-          <div v-if="!esCobro" class="cp-footer">
-            <button v-if="cita.Estado === 'pendiente'" type="button" class="btn btn-sm" @click="completar">
+          <!-- Footer: acciones para citas pendientes y cobros del día -->
+          <div class="cp-footer">
+            <button v-if="!esCobro && cita.Estado === 'pendiente'" type="button" class="btn btn-sm" @click="completar">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Completada
+              Visita realizada
+            </button>
+            <button v-if="esCobro || cita.Estado === 'pendiente'" type="button" class="btn btn-success btn-sm" @click="cobrar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              {{ esCobro ? 'Cobrar' : 'Cobrado' }}
             </button>
           </div>
         </div>
@@ -346,6 +355,8 @@ const cerrar = () => emit('cerrar')
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   padding: 14px 20px;
   border-top: 1px solid var(--border);
   background: var(--bg-base);

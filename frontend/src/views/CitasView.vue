@@ -1,14 +1,9 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { getCitas, crearCita, actualizarCita, eliminarCita, getClientes, actualizarCliente } from '../api.js'
+import { getCitas, crearCita, actualizarCita, eliminarCita, getClientes, actualizarCliente, cobrarCliente } from '../api.js'
 import CitaPopup from '../components/CitaPopup.vue'
 import { alerta } from '../composables/useAlert.js'
-
-const fmtDinero = (v) => {
-  const n = Number(String(v).replace(/[^0-9.,-]/g, '').replace(',', '.'))
-  if (!n && n !== 0) return ''
-  return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
+import { formatearMonto, normalizarMonto } from '../utils/dinero.js'
 
 const citas = ref([])
 const clientes = ref([])
@@ -23,6 +18,7 @@ const citaSeleccionada = ref(null)
 const form = reactive({
   fecha: '',
   hora: '',
+  idCliente: '',
   establecimiento: '',
   motivo: '',
 })
@@ -226,9 +222,19 @@ const toggleForm = () => {
   if (mostrandoForm.value) {
     form.fecha = diaSeleccionado.value || hoy.toISOString().slice(0, 10)
     form.hora = ''
+    form.idCliente = ''
     form.establecimiento = ''
     form.motivo = ''
   }
+}
+
+const clientesOrdenados = computed(() =>
+  [...clientes.value].sort((a, b) => String(a.Nombre || '').localeCompare(String(b.Nombre || ''), 'es')),
+)
+
+const aplicarClienteEnForm = () => {
+  const cl = clientes.value.find((c) => c.ID_Cliente === form.idCliente)
+  if (cl) form.establecimiento = cl.Nombre || form.establecimiento
 }
 
 const nuevaCita = async () => {
@@ -239,7 +245,23 @@ const nuevaCita = async () => {
   try {
     const payload = { Fecha: form.fecha, Establecimiento: form.establecimiento, Motivo: form.motivo }
     if (form.hora) payload.Hora = form.hora
+    if (form.idCliente) {
+      payload.ID_Cliente = form.idCliente
+    } else {
+      // Fallback: buscar el cliente cuyo nombre coincide con el establecimiento
+      const norm = (s) =>
+        String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+      const estab = norm(form.establecimiento)
+      const match = clientes.value.find(
+        (cl) => norm(cl.Nombre) && (norm(cl.Nombre).includes(estab) || estab.includes(norm(cl.Nombre))),
+      )
+      if (match) payload.ID_Cliente = match.ID_Cliente
+    }
     await crearCita(payload)
+    // Sincronizar estatus: programar una cita deja al cliente "Pendiente"
+    if (payload.ID_Cliente) {
+      await actualizarCliente(payload.ID_Cliente, { Etapa_Embudo: 'Pendiente' })
+    }
     alerta({ mensaje: 'Cita creada', tipo: 'success' })
     // Programar recordatorio push si tiene hora
     if (form.hora) programarRecordatorio({ Fecha: form.fecha, Hora: form.hora, Establecimiento: form.establecimiento })
@@ -290,10 +312,28 @@ const programarRecordatorio = (cita) => {
   pedirPermiso()
 }
 
+const resolverClienteDeCita = (cita) => {
+  if (cita?.ID_Cliente) return clientes.value.find((c) => c.ID_Cliente === cita.ID_Cliente) || null
+  const norm = (s) =>
+    String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+  const estab = norm(cita?.Establecimiento)
+  if (!estab) return null
+  return (
+    clientes.value.find((c) => norm(c.Nombre).includes(estab) || estab.includes(norm(c.Nombre))) || null
+  )
+}
+
 const completarCita = async (cita) => {
   try {
     await actualizarCita(cita.ID_Cita, { Estado: 'completada' })
-    alerta({ mensaje: `${cita.ID_Cita} completada`, tipo: 'success' })
+    let mensaje = `${cita.ID_Cita} completada`
+    // Marcar al cliente como "Al día" si la cita está vinculada a uno
+    const cliente = resolverClienteDeCita(cita)
+    if (cliente) {
+      await actualizarCliente(cliente.ID_Cliente, { Etapa_Embudo: 'Cliente activo' })
+      mensaje = `${cita.ID_Cita} completada · ${cliente.Nombre} al día`
+    }
+    alerta({ mensaje, tipo: 'success' })
     await cargar()
   } catch (e) {
     alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
@@ -325,6 +365,35 @@ const completarDesdePopup = async () => {
   cerrarPopup()
 }
 
+const cobrarDesdePopup = async () => {
+  if (!citaSeleccionada.value) return
+  const cita = citaSeleccionada.value
+  // Un cobro del día ya trae ID_Cliente; una cita se resuelve por vínculo/nombre
+  const cliente = cita._tipo === 'cobro'
+    ? clientes.value.find((c) => c.ID_Cliente === cita.ID_Cliente) || null
+    : resolverClienteDeCita(cita)
+  if (!cliente) {
+    alerta({ titulo: 'Error', mensaje: 'No se encontró el cliente vinculado', tipo: 'error' })
+    return
+  }
+  const id = cita.ID_Cita
+  try {
+    // Al cobrar, el cliente vuelve a "Al día" y se limpia Fecha_Cobro (flujo cerrado)
+    await cobrarCliente(cliente.ID_Cliente, 'Cliente activo')
+    if (id) await actualizarCita(id, { Estado: 'completada' })
+    cerrarPopup()
+    await cargar()
+    alerta({
+      mensaje: id
+        ? `Cobro registrado · ${cliente.Nombre} al día · ${id} completada`
+        : `Cobro registrado · ${cliente.Nombre} al día`,
+      tipo: 'success',
+    })
+  } catch (e) {
+    alerta({ titulo: 'Error', mensaje: e.message, tipo: 'error' })
+  }
+}
+
 const eliminarDesdePopup = async () => {
   if (!citaSeleccionada.value) return
   try {
@@ -353,7 +422,7 @@ const guardarCobroDesdePopup = async (cambios) => {
   try {
     const payload = {}
     if (cambios.Fecha_Cobro) payload.Fecha_Cobro = cambios.Fecha_Cobro
-    if (cambios.Monto !== undefined) payload.Monto = cambios.Monto
+    if (cambios.Monto !== undefined) payload.Monto = normalizarMonto(cambios.Monto)
     await actualizarCliente(cl.ID_Cliente, payload)
     alerta({ mensaje: `${cl.Nombre}: día de cobro actualizado`, tipo: 'success' })
     cerrarPopup()
@@ -456,6 +525,17 @@ const guardarDesdePopup = async (cambios) => {
             <input v-model="form.hora" type="time" class="input" />
           </label>
           <label class="field">
+            <span class="field-label">Cliente (opcional)</span>
+            <select v-model="form.idCliente" class="input" @change="aplicarClienteEnForm">
+              <option value="">— Sin vincular —</option>
+              <option
+                v-for="cl in clientesOrdenados"
+                :key="cl.ID_Cliente"
+                :value="cl.ID_Cliente"
+              >{{ cl.Nombre }}</option>
+            </select>
+          </label>
+          <label class="field">
             <span class="field-label">Establecimiento *</span>
             <input v-model="form.establecimiento" type="text" class="input" placeholder="Nombre del local" />
           </label>
@@ -525,7 +605,7 @@ const guardarDesdePopup = async (cambios) => {
             <div class="cita-info">
               <span class="cita-estab">{{ c.Nombre }}</span>
               <span v-if="c.Direccion" class="cita-motivo">{{ c.Direccion }}</span>
-              <span v-if="c.Monto" class="cobro-monto">${{ fmtDinero(c.Monto) }}</span>
+              <span v-if="c.Monto" class="cobro-monto">${{ formatearMonto(c.Monto) }}</span>
             </div>
             <div class="cita-actions">
               <span class="status" :class="`tone-${c._tono === 'atrasado' ? 'danger' : c._tono === 'esta-semana' ? 'warning' : 'success'}`">
@@ -565,6 +645,7 @@ const guardarDesdePopup = async (cambios) => {
       :cita="citaSeleccionada"
       @cerrar="cerrarPopup"
       @completar="completarDesdePopup"
+      @cobrar="cobrarDesdePopup"
       @eliminar="eliminarDesdePopup"
       @guardar="guardarDesdePopup"
       @guardar-cobro="guardarCobroDesdePopup"
