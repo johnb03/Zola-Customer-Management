@@ -7,10 +7,18 @@ import AlertModal from './components/AlertModal.vue'
 import SetupScreen from './components/SetupScreen.vue'
 import { cargarUsuario } from './store.js'
 import { hasAgenteConfig } from './agente.js'
+import { runMigrations } from './migraciones.js'
 
 const ready = ref(hasAgenteConfig())
 
-onMounted(() => {
+onMounted(async () => {
+  // Backfill de datos existentes al formato actual (idempotente, corre una vez
+  // por versión; no bloquea la UI si falla).
+  try {
+    await runMigrations()
+  } catch (e) {
+    console.error('Migración de datos falló:', e)
+  }
   cargarUsuario()
 })
 
