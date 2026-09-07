@@ -16,6 +16,7 @@ import { callAgente, analizarPlantillaConAgente } from './agente.js'
 import { exportarExcel as exportExcel, buildVisitasBlob, detectarPlantillaDeterminista, exportarDashboard as exportarDashboardExcel } from './utils/excel.js'
 import { extractText } from './utils/extractText.js'
 import { generarDocxBlob } from './utils/generarDocx.js'
+import { normalizarMonto } from './utils/dinero.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -252,6 +253,7 @@ export const subirDatos = async (tipo, file) => {
           Zona: r.Zona || r.zona || '',
           Codigo: r.Codigo || r['#'] || r.codigo || '',
           Fecha_Ultima_Venta: r.Fecha_Ultima_Venta || r.fechaultventa || '',
+          Monto: (r.Monto ?? r.monto) ? normalizarMonto(r.Monto ?? r.monto) : '',
         }
       })
       await db.clientes.saveAll(clientes)
@@ -436,6 +438,7 @@ export const guardarVisitas = async (payload) => {
     Productos_Presentados: fmt(v.productos_presentados),
     Pedido: fmt(v.pedido),
     Detalle_Pedido: fmt(v.detalle_pedido),
+    Monto: fmt(v.monto),
     Comentarios: fmt(v.comentarios),
     Proximo_Paso: fmt(v.proximo_paso),
   }))
@@ -520,12 +523,12 @@ const autoEstatusDesdeVisitas = async (records) => {
     if (pedido === 'si') {
       cliente.Etapa_Embudo = 'Cliente activo'
       cliente.Fecha_Cobro = addDays(fecha, 15)
-      if (String(r.Monto ?? '').trim()) cliente.Monto = String(r.Monto).trim()
+      if (String(r.Monto ?? '').trim()) cliente.Monto = normalizarMonto(r.Monto)
       updated++
     } else if (proximoPaso === 'cobro') {
       cliente.Etapa_Embudo = 'Cobro'
       cliente.Fecha_Cobro = addDays(fecha, 15)
-      if (String(r.Monto ?? '').trim()) cliente.Monto = String(r.Monto).trim()
+      if (String(r.Monto ?? '').trim()) cliente.Monto = normalizarMonto(r.Monto)
       updated++
     } else if (proximoPaso.includes('seguimiento') || proximoPaso.includes('visita')) {
       cliente.Etapa_Embudo = 'Seguimiento'
@@ -1199,6 +1202,7 @@ export const guardarVisitasDesdeNota = async (id, payload) => {
     Productos_Presentados: fmt(v.productos_presentados),
     Pedido: fmt(v.pedido),
     Detalle_Pedido: fmt(v.detalle_pedido),
+    Monto: fmt(v.monto ?? v.Monto),
     Comentarios: fmt(v.comentarios),
     Proximo_Paso: fmt(v.proximo_paso),
   }))

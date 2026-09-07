@@ -20,6 +20,8 @@
 //   - Comentarios: todo lo que sobra (nunca se pierde información).
 //   - Keywords → Pedido / Próximo Paso / Detalle_Pedido / Monto (solo con $ o "pesos").
 
+import { normalizarMonto } from './dinero.js'
+
 const HORA_RE = /(\d{1,2})\s*:\s*(\d{2})\b/g
 
 // Palabras/frases que abren una línea que NO es un nombre de persona.
@@ -71,8 +73,10 @@ const lineaEsPersona = (linea) => {
 const capturarMonto = (texto) => {
   const m = MONTO_RE.exec(texto)
   if (!m) return ''
-  const raw = (m[1] || m[2] || m[3] || '').replace(/[^\d.,]/g, '').replace(/,/g, '')
-  return raw || ''
+  const raw = (m[1] || m[2] || m[3] || '').replace(/[^\d.,]/g, '')
+  if (!raw) return ''
+  const n = normalizarMonto(raw)
+  return n ? String(n) : ''
 }
 
 const detectarProximoPaso = (comentarios) => {

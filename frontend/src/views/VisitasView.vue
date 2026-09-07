@@ -11,6 +11,7 @@ import {
 import { guardarEnCarpetaPc } from "../utils/exportToFolder.js";
 import { confirmar } from "../composables/useConfirm.js";
 import { alerta } from "../composables/useAlert.js";
+import { normalizarMonto } from "../utils/dinero.js";
 
 const hoy = () => {
   const d = new Date();
@@ -201,7 +202,7 @@ const cancelarEdicion = () => {
 const guardarEdicion = async () => {
   if (!editandoVisita.value) return;
   try {
-    await actualizarVisita(editandoVisita.value, { ...edicion });
+    await actualizarVisita(editandoVisita.value, { ...edicion, Monto: edicion.Monto ? normalizarMonto(edicion.Monto) : '' });
     alerta({
       mensaje: `Visita de "${edicion.Establecimiento}" actualizada.`,
       tipo: "success",
@@ -478,11 +479,10 @@ const guardarEdicion = async () => {
                 <span class="field-label">Monto ($)</span>
                 <input
                   v-model="edicion.Monto"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputmode="decimal"
                   class="input"
-                  placeholder="Monto de la venta / cobro"
+                  placeholder="0,00"
                 />
               </label>
               <label class="field">
