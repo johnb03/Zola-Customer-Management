@@ -38,8 +38,13 @@ const previewReemplazadas = ref(0);
 // Filter
 const filtroFecha = ref("");
 const notasFiltradas = computed(() => {
-  if (!filtroFecha.value) return notas.value;
-  return notas.value.filter((n) => n.Fecha === filtroFecha.value);
+  const base = filtroFecha.value
+    ? notas.value.filter((n) => n.Fecha === filtroFecha.value)
+    : notas.value;
+  // Más recientes primero (la nota recién creada queda arriba)
+  return [...base].sort(
+    (a, b) => String(b.ID_Nota).localeCompare(String(a.ID_Nota), undefined, { numeric: true })
+  );
 });
 
 const _d = new Date();

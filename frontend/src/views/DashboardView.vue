@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { getClientes, getVisitas, getCobros, exportarDashboard } from '../api.js'
 import { guardarEnCarpetaPc } from '../utils/exportToFolder.js'
 import { dataVersion } from '../store.js'
+import { formatearMonto } from '../utils/dinero.js'
 
 /* ── State ── */
 const router = useRouter()
@@ -36,15 +37,73 @@ const periods = [
   { key: 'semanal', label: 'Semanal' },
   { key: 'mensual', label: 'Mensual' },
   { key: 'anual', label: 'Anual' },
+  { key: 'personalizado', label: 'Personalizado' },
 ]
+
+/* ── Rango personalizado (desde/hasta) ── */
+const fmtInputDate = (d) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const semanaActualInput = () => {
+  const now = new Date()
+  const lunes = new Date(now)
+  lunes.setHours(0, 0, 0, 0)
+  lunes.setDate(now.getDate() - ((now.getDay() + 6) % 7))
+  const domingo = new Date(lunes)
+  domingo.setDate(lunes.getDate() + 6)
+  return { lunes: fmtInputDate(lunes), domingo: fmtInputDate(domingo) }
+}
+
+const customStart = ref('')
+const customEnd = ref('')
+
+const setPeriod = (key) => {
+  period.value = key
+  if (key === 'personalizado') {
+    const { lunes, domingo } = semanaActualInput()
+    customStart.value = lunes
+    customEnd.value = domingo
+  }
+}
 
 const periodRange = computed(() => {
   const now = new Date()
-  const start = new Date(now)
-  if (period.value === 'semanal') start.setDate(now.getDate() - 7)
-  else if (period.value === 'mensual') start.setMonth(now.getMonth() - 1)
-  else start.setFullYear(now.getFullYear() - 1)
-  return { start, end: now }
+  if (period.value === 'personalizado') {
+    const start = parseFecha(customStart.value)
+    const end = parseFecha(customEnd.value)
+    if (start && end && end >= start) {
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      return { start, end }
+    }
+    // Sin rango válido → semana actual como respaldo
+    const { lunes, domingo } = semanaActualInput()
+    return { start: parseFecha(lunes), end: parseFecha(domingo) }
+  }
+  if (period.value === 'semanal') {
+    // Semana natural: lunes a domingo
+    const start = new Date(now)
+    start.setHours(0, 0, 0, 0)
+    start.setDate(now.getDate() - ((now.getDay() + 6) % 7))
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+  }
+  if (period.value === 'mensual') {
+    // Mes calendario: 1 al 30/31
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    return { start, end }
+  }
+  // Año calendario completo
+  const start = new Date(now.getFullYear(), 0, 1)
+  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+  return { start, end }
 })
 
 const parseFecha = (s) => {
@@ -76,11 +135,13 @@ const statDineroCobrado = computed(() => {
   const total = cobros.value
     .filter((cb) => isInRange(cb.Fecha_Cobrado))
     .reduce((acc, cb) => acc + (Number(cb.Monto) || 0), 0)
-  return total ? `$${total.toLocaleString('es-AR')}` : '$0'
+  return total ? `$${formatearMonto(total)}` : '$0'
 })
 
 const statNuevos = computed(() =>
-  clientes.value.filter((c) => isInRange(c.Fecha_Registro)).length
+  clientes.value.filter(
+    (c) => c.Origen !== 'importado' && isInRange(c.Fecha_Registro)
+  ).length
 )
 
 // Histórico: total siempre, sin filtro de período.
@@ -113,54 +174,72 @@ const barData = computed(() => {
 const yMax = computed(() => Math.max(1, ...barData.value))
 const barHeight = (v) => Math.max(4, (v / yMax.value) * 100)
 
-/* ── Gráficas de crecimiento (dinero cobrado / clientes nuevos) ── */
-const chartModes = [
-  { key: '7d', label: '7 días' },
-  { key: 'semana', label: 'Semana' },
-  { key: 'mes', label: 'Mes' },
-]
-const chartCobradoMode = ref('7d')
-const chartNuevosMode = ref('7d')
-
-const fmtMoney = (n) => '$' + Number(n).toLocaleString('es-AR')
-
-const buildRanges = (mode) => {
-  const ranges = []
-  const now = new Date()
-  if (mode === '7d') {
-    for (let i = 6; i >= 0; i--) {
-      const start = new Date(now)
-      start.setHours(0, 0, 0, 0)
-      start.setDate(now.getDate() - i)
-      const end = new Date(start)
-      end.setHours(23, 59, 59, 999)
-      ranges.push({ label: start.toLocaleDateString('es-AR', { weekday: 'short' }), start, end })
+/* ── Gráficas de crecimiento (dinero cobrado / clientes nuevos) ──
+   Los buckets siguen SIEMPRE la pestaña de período elegida:
+   semanal → 7 barras (lun..dom), mensual → 1 por día (30/31), anual → 12 meses. */
+const periodBuckets = computed(() => {
+  const { start, end } = periodRange.value
+  const buckets = []
+  if (period.value === 'anual') {
+    for (let m = 0; m < 12; m++) {
+      const s = new Date(start.getFullYear(), m, 1)
+      const e = new Date(start.getFullYear(), m + 1, 0, 23, 59, 59, 999)
+      buckets.push({
+        label: s.toLocaleDateString('es-AR', { month: 'short' }),
+        start: s,
+        end: e,
+      })
     }
-  } else if (mode === 'semana') {
-    const monday = new Date(now)
-    monday.setHours(0, 0, 0, 0)
-    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
-    for (let i = 3; i >= 0; i--) {
-      const start = new Date(monday)
-      start.setDate(monday.getDate() - i * 7)
-      const end = new Date(start)
-      end.setDate(start.getDate() + 6)
-      end.setHours(23, 59, 59, 999)
-      ranges.push({ label: `${start.getDate()}/${start.getMonth() + 1}`, start, end })
-    }
-  } else {
-    const cur = new Date(now.getFullYear(), now.getMonth(), 1)
-    for (let i = 5; i >= 0; i--) {
-      const start = new Date(cur.getFullYear(), cur.getMonth() - i, 1)
-      const end = new Date(cur.getFullYear(), cur.getMonth() - i + 1, 0, 23, 59, 59, 999)
-      ranges.push({ label: start.toLocaleDateString('es-AR', { month: 'short' }), start, end })
-    }
+    return buckets
   }
-  return ranges
-}
+  if (period.value === 'personalizado') {
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1
+    if (diffDays <= 31) {
+      // Rango corto: un bucket por día
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const s = new Date(d)
+        s.setHours(0, 0, 0, 0)
+        const e = new Date(d)
+        e.setHours(23, 59, 59, 999)
+        buckets.push({ label: `${s.getDate()}/${s.getMonth() + 1}`, start: s, end: e })
+      }
+      return buckets
+    }
+    // Rango largo: un bucket por mes
+    const totMonths = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1
+    const showYear = totMonths > 12 || end.getFullYear() !== start.getFullYear()
+    for (let i = 0; i < totMonths; i++) {
+      const ms = new Date(start.getFullYear(), start.getMonth() + i, 1)
+      const me = new Date(start.getFullYear(), start.getMonth() + i + 1, 0, 23, 59, 59, 999)
+      const s = new Date(Math.max(start.getTime(), ms.getTime()))
+      const e = new Date(Math.min(end.getTime(), me.getTime()))
+      buckets.push({
+        label: ms.toLocaleDateString('es-AR', { month: 'short' }) + (showYear ? ` ${ms.getFullYear()}` : ''),
+        start: s,
+        end: e,
+      })
+    }
+    return buckets
+  }
+  const diaIdx = (d) => (d.getDay() + 6) % 7 // 0 = lunes
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const s = new Date(d)
+    s.setHours(0, 0, 0, 0)
+    const e = new Date(d)
+    e.setHours(23, 59, 59, 999)
+    buckets.push({
+      label: period.value === 'semanal' ? days[diaIdx(d)] : String(s.getDate()),
+      start: s,
+      end: e,
+    })
+  }
+  return buckets
+})
+
+const fmtMoney = (n) => '$' + formatearMonto(n)
 
 const cobradoData = computed(() =>
-  buildRanges(chartCobradoMode.value).map((r) => ({
+  periodBuckets.value.map((r) => ({
     label: r.label,
     value: cobros.value
       .filter((cb) => {
@@ -172,11 +251,11 @@ const cobradoData = computed(() =>
 )
 
 const nuevosData = computed(() =>
-  buildRanges(chartNuevosMode.value).map((r) => ({
+  periodBuckets.value.map((r) => ({
     label: r.label,
     value: clientes.value.filter((c) => {
       const d = parseFecha(c.Fecha_Registro)
-      return d && d >= r.start && d <= r.end
+      return c.Origen !== 'importado' && d && d >= r.start && d <= r.end
     }).length,
   }))
 )
@@ -204,7 +283,7 @@ const proximosCobros = computed(() => {
       return {
         name: c.Nombre,
         sub: [c.Zona, c.Tipo_Negocio].filter(Boolean).join(' · ') || c.Direccion || '',
-        amount: c.Monto ? `$${Number(c.Monto).toLocaleString()}` : '',
+        amount: c.Monto ? `$${formatearMonto(c.Monto)}` : '',
         monto: Number(c.Monto) || 0,
         date: formatFechaCorta(c.Fecha_Cobro),
         badge: diff <= 7 ? 'Vence pronto' : 'Pendiente',
@@ -265,8 +344,16 @@ const doExport = async () => {
   exportando.value = true
   exportMsg.value = ''
   try {
+    const fmtDMA = (s) => {
+      const d = parseFecha(s)
+      return d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}` : s
+    }
+    const periodoLabel =
+      period.value === 'personalizado'
+        ? `Personalizado (${fmtDMA(customStart.value)} – ${fmtDMA(customEnd.value)})`
+        : periods.find((p) => p.key === period.value)?.label || period.value
     const { blob, nombre } = await exportarDashboard({
-      periodo: periods.find((p) => p.key === period.value)?.label || period.value,
+      periodo: periodoLabel,
       stats: stats.value,
       visitasDia: days.map((d, i) => ({ label: d, value: barData.value[i] })),
       cobrado: cobradoData.value,
@@ -311,10 +398,18 @@ const doExport = async () => {
             class="chip"
             :class="{ active: period === p.key }"
             type="button"
-            @click="period = p.key"
+            @click="setPeriod(p.key)"
           >{{ p.label }}</button>
         </div>
-        <button class="btn btn-export" type="button" :disabled="exportando || visitas.length === 0" @click="doExport">
+        <div v-if="period === 'personalizado'" class="custom-range">
+          <label class="custom-label">Desde
+            <input type="date" v-model="customStart" class="date-input" />
+          </label>
+          <label class="custom-label">Hasta
+            <input type="date" v-model="customEnd" class="date-input" />
+          </label>
+        </div>
+        <button class="btn btn-export" type="button" :disabled="exportando" @click="doExport">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           {{ exportando ? 'Exportando…' : 'Exportar vista a Excel' }}
         </button>
@@ -367,9 +462,6 @@ const doExport = async () => {
       <article class="card chart-card">
         <header class="chart-header">
           <h2 class="chart-title">Dinero cobrado</h2>
-          <div class="filter-chips">
-            <button v-for="m in chartModes" :key="m.key" type="button" class="chip" :class="{ active: chartCobradoMode === m.key }" @click="chartCobradoMode = m.key">{{ m.label }}</button>
-          </div>
         </header>
         <template v-if="cobradoData.some((d) => d.value > 0)">
           <div class="chart-area">
@@ -398,9 +490,6 @@ const doExport = async () => {
       <article class="card chart-card">
         <header class="chart-header">
           <h2 class="chart-title">Clientes nuevos</h2>
-          <div class="filter-chips">
-            <button v-for="m in chartModes" :key="m.key" type="button" class="chip" :class="{ active: chartNuevosMode === m.key }" @click="chartNuevosMode = m.key">{{ m.label }}</button>
-          </div>
         </header>
         <template v-if="nuevosData.some((d) => d.value > 0)">
           <div class="chart-area">
@@ -496,6 +585,29 @@ const doExport = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.custom-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+
+.date-input {
+  padding: 6px 10px;
+  border: 1px solid #d9dbe3;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
 }
 
 /* ── Chips ── */

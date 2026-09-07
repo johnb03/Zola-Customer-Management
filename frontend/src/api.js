@@ -242,10 +242,11 @@ export const subirDatos = async (tipo, file) => {
         seq++
         return {
           ID_Cliente: `CL-${String(seq).padStart(3, '0')}`,
+          Origen: 'importado',
           Nombre: r.Nombre || r.razon_social || r.razonsocial || r.nombre || '',
           Telefono: r.Telefono || r.telefono1 || r.telefono || '',
           Email: r.Email || r.email || '',
-          Etapa_Embudo: r.Etapa_Embudo || (r.Fecha_Ultima_Venta ? 'Cliente activo' : 'Cliente potencial'),
+          Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
           Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
           Notas: r.Notas || r.notas || '',
           Tipo_Negocio: r.Tipo_Negocio || r.tipone || r.tipo_negocio || '',
@@ -566,7 +567,8 @@ export const crearCliente = async (cliente) => {
   const id = await db.nextId('clientes', 'cli-')
   const record = {
     ID_Cliente: id,
-    Etapa_Embudo: cliente.Etapa_Embudo || 'Cliente potencial',
+    Origen: 'manual',
+    Etapa_Embudo: cliente.Etapa_Embudo || 'Cliente activo',
     Fecha_Registro: new Date().toISOString().slice(0, 10),
     ...cliente,
   }
@@ -717,10 +719,11 @@ export const convertirEntrante = async (tipo, archivo) => {
         seq++
         return {
           ID_Cliente: `CL-${pad3(seq)}`,
+          Origen: 'importado',
           Nombre: r.Nombre || r.razon_social || r.razonsocial || r.nombre || '',
           Telefono: r.Telefono || r.telefono1 || r.telefono || '',
           Email: r.Email || r.email || '',
-          Etapa_Embudo: r.Etapa_Embudo || (r.Fecha_Ultima_Venta ? 'Cliente activo' : 'Cliente potencial'),
+          Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
           Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
           Notas: r.Notas || r.notas || '',
           Tipo_Negocio: r.Tipo_Negocio || r.tipone || r.tipo_negocio || '',
@@ -800,10 +803,11 @@ export const convertirEntrante = async (tipo, archivo) => {
         seq++
         return {
           ID_Cliente: `CL-${pad3(seq)}`,
+          Origen: 'importado',
           Nombre: r.Nombre || '',
           Telefono: r.Telefono || '',
           Email: r.Email || '',
-          Etapa_Embudo: r.Etapa_Embudo || (r.Fecha_Ultima_Venta ? 'Cliente activo' : 'Cliente potencial'),
+          Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
           Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
           Notas: r.Notas || '',
           Tipo_Negocio: r.Tipo_Negocio || '',
@@ -856,10 +860,11 @@ export const convertirEntrante = async (tipo, archivo) => {
         seq++
         return {
           ID_Cliente: `CL-${pad3(seq)}`,
+          Origen: 'importado',
           Nombre: r.Nombre || '',
           Telefono: r.Telefono || '',
           Email: r.Email || '',
-          Etapa_Embudo: r.Etapa_Embudo || (r.Fecha_Ultima_Venta ? 'Cliente activo' : 'Cliente potencial'),
+          Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
           Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
           Notas: r.Notas || '',
           Tipo_Negocio: r.Tipo_Negocio || '',
