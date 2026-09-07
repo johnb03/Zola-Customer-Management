@@ -338,20 +338,54 @@ export async function buildVisitasBlob({ visitas, encabezado = {}, periodo = 'di
 // exceljs no genera gráficos nativos de Excel: dibujamos los gráficos en
 // canvas (browser) y los embebemos como PNG en el workbook.
 
-const DARK = 'FF15100D'
-const GOLD = 'FFF1C27D'
-const GREEN = 'FF6B8F47'
-const DANGER = 'FFA8433A'
-const GRAY = 'FF8A8278'
-const LINE = 'FFE7E2D9'
+// Paleta "dashboard empresarial" — fondo blanco, texto negro, sin dorado
+const WHITE_BG = 'FFFFFFFF'
+const TEXT_PRIMARY = 'FF000000'
+const TEXT_SECONDARY = 'FF555555'
+const BORDER_COLOR = 'FFD9D9D9'
+const RED = 'FFD32F2F'
+const BLUE = 'FF1976D2'
+const GREEN = 'FF2E7D32'
+const GRAY_LIGHT = 'FFF0F0F0'
 
 const fmtMoney = (n) => '$' + Number(n || 0).toLocaleString('es-AR')
+
+/** Formatea un número como比率 "3 / 32 = 9,4 %" */
+function fmtConversion(venta, visitados) {
+  const v = Number(venta) || 0
+  const t = Number(visitados) || 0
+  if (t === 0) return '—'
+  const pct = ((v / t) * 100).toFixed(1).replace('.', ',')
+  return `${v} / ${t} = ${pct} %`
+}
+
+/** Borde fino estándar para celdas de datos */
+const thinBorder = () => ({
+  top: { style: 'thin', color: { argb: BORDER_COLOR } },
+  left: { style: 'thin', color: { argb: BORDER_COLOR } },
+  bottom: { style: 'thin', color: { argb: BORDER_COLOR } },
+  right: { style: 'thin', color: { argb: BORDER_COLOR } },
+})
+
+/** Borde solo inferior (para filas de datos limpias) */
+const bottomBorder = () => ({
+  bottom: { style: 'thin', color: { argb: BORDER_COLOR } },
+})
 
 /**
  * Dibuja un gráfico de barras y devuelve un dataURL PNG (o null si no hay
  * canvas, ej. en Node). Usado para incrustar la imagen en el Excel.
+ * @param {Object} opts
+ * @param {string} opts.title - Título del gráfico
+ * @param {string[]} opts.labels - Labels del eje X
+ * @param {number[]} opts.values - Valores de las barras
+ * @param {string} [opts.color] - Color ARGB default para todas las barras
+ * @param {Function} [opts.colorFn] - (value, index, max) => '#hex' — color por barra
+ * @param {Function} [opts.fmt] - Función para formatear valores sobre las barras
+ * @param {number} [opts.W=620] - Ancho del canvas
+ * @param {number} [opts.H=250] - Alto del canvas
  */
-function dibujarGraficoPNG({ title, labels, values, color, fmt, W = 620, H = 250 }) {
+function dibujarGraficoPNG({ title, labels, values, color, colorFn, fmt, W = 620, H = 250 }) {
   if (typeof document === 'undefined') return null
   try {
     const dpr = 2
@@ -379,13 +413,13 @@ function dibujarGraficoPNG({ title, labels, values, color, fmt, W = 620, H = 250
     ctx.font = '11px system-ui, sans-serif'
     for (const g of [0, 0.5, 1]) {
       const y = padT + chartH * (1 - g)
-      ctx.strokeStyle = LINE
+      ctx.strokeStyle = '#E0E0E0'
       ctx.lineWidth = 1
       ctx.beginPath()
       ctx.moveTo(padL, y)
       ctx.lineTo(W - padR, y)
       ctx.stroke()
-      ctx.fillStyle = GRAY
+      ctx.fillStyle = '#555555'
       ctx.textAlign = 'right'
       ctx.fillText(fmt ? fmt(max * g) : String(Math.round(max * g)), padL - 8, y + 4)
     }
@@ -398,19 +432,19 @@ function dibujarGraficoPNG({ title, labels, values, color, fmt, W = 620, H = 250
       const h = Math.max(0, (val / max) * chartH)
       const y = padT + chartH - h
       if (h > 0) {
-        ctx.fillStyle = color
+        ctx.fillStyle = colorFn ? colorFn(val, i, max) : (color || '#1976D2')
         ctx.fillRect(x - barW / 2, y, barW, h)
       }
-      ctx.fillStyle = DARK
+      ctx.fillStyle = '#000000'
       ctx.font = '600 12px system-ui, sans-serif'
       ctx.fillText(fmt ? fmt(val) : String(val), x, y - 6)
-      ctx.fillStyle = '#6E665C'
+      ctx.fillStyle = '#555555'
       ctx.font = '11px system-ui, sans-serif'
       ctx.fillText(lab, x, H - padB + 16)
     })
 
     // Título
-    ctx.fillStyle = DARK
+    ctx.fillStyle = '#000000'
     ctx.font = '700 16px system-ui, sans-serif'
     ctx.textAlign = 'left'
     ctx.fillText(title, 16, 28)
@@ -422,15 +456,31 @@ function dibujarGraficoPNG({ title, labels, values, color, fmt, W = 620, H = 250
   }
 }
 
-/** Escribe una tabla con header oscuro + filas; devuelve la última fila usada. */
+/** Color de barra por valor: 0 → rojo, bajo → azul, alto → verde */
+function colorPorValor(val, _i, max) {
+  if (val === 0) return '#D32F2F'
+  const ratio = val / max
+  if (ratio <= 0.4) return '#D32F2F'
+  if (ratio <= 0.75) return '#1976D2'
+  return '#2E7D32'
+}
+
+/** Color de barra para visitas por día: 0-4 rojo, 5-8 azul, 9+ verde */
+function colorVisitasDia(val) {
+  if (val <= 4) return '#D32F2F'
+  if (val <= 8) return '#1976D2'
+  return '#2E7D32'
+}
+
+/** Escribe una tabla con header claro + filas; devuelve la última fila usada. */
 function escribirTabla(ws, startRow, headers, rows, opts = {}) {
   const hr = ws.getRow(startRow)
   headers.forEach((h, i) => {
     const cell = hr.getCell(i + 1)
     cell.value = h
-    cell.font = { bold: true, color: { argb: GOLD, size: 11 } }
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } }
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FF3A332C' } } }
+    cell.font = { bold: true, color: { argb: TEXT_PRIMARY, size: 11 } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_LIGHT } }
+    cell.border = { bottom: { style: 'thin', color: { argb: BORDER_COLOR } } }
   })
   hr.height = 22
 
@@ -439,7 +489,9 @@ function escribirTabla(ws, startRow, headers, rows, opts = {}) {
     r.forEach((v, j) => {
       const cell = row.getCell(j + 1)
       cell.value = v
-      if (opts.moneyCols && opts.moneyCols.includes(j + 1)) cell.numFmt = '"$"#,##0'
+      cell.font = { color: { argb: TEXT_PRIMARY } }
+      cell.border = bottomBorder()
+      if (opts.moneyCols && opts.moneyCols.includes(j + 1)) cell.numFmt = '"$"#,##0.00'
     })
     row.height = 19
   })
@@ -449,7 +501,7 @@ function escribirTabla(ws, startRow, headers, rows, opts = {}) {
 function tituloSeccion(ws, row, texto) {
   const cell = ws.getRow(row).getCell(1)
   cell.value = texto
-  cell.font = { bold: true, size: 13, color: { argb: DARK } }
+  cell.font = { bold: true, size: 13, color: { argb: TEXT_PRIMARY } }
   return row
 }
 
@@ -460,6 +512,13 @@ function insertarGrafico(ws, imageId, topRow, H = 250, W = 620) {
   }
   const rowsOcupadas = Math.ceil(H / 15) // altura default de fila ≈ 15px
   return topRow + rowsOcupadas + 3
+}
+
+/** Aplica borde fino completo a un rango de celdas */
+function aplicarBordes(ws, row, colStart, colEnd) {
+  for (let c = colStart; c <= colEnd; c++) {
+    ws.getCell(row, c).border = thinBorder()
+  }
 }
 
 /**
@@ -485,89 +544,90 @@ export async function exportarDashboard({
   const ws = wb.addWorksheet('Dashboard')
   const fechaGen = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })
 
-  // Título
+  // Encabezado
   const t1 = ws.getCell('A1')
   t1.value = 'Dashboard general'
-  t1.font = { bold: true, size: 18, color: { argb: GOLD } }
-  t1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } }
-  ws.getCell('B1').fill = t1.fill
-  ws.getCell('C1').fill = t1.fill
+  t1.font = { bold: true, size: 18, color: { argb: TEXT_PRIMARY } }
   ws.getRow(1).height = 30
-  ws.getCell('A2').value = `Período: ${periodo || '—'}   ·   Generado: ${fechaGen}   ·   ${visitasPeriodo.length} visitas en el período`
-  ws.getCell('A2').font = { italic: true, color: { argb: GRAY }, size: 10 }
+
+  ws.getCell('A2').value = `Período: ${periodo || '—'} · Generado: ${fechaGen} · ${visitasPeriodo.length} visitas en el período`
+  ws.getCell('A2').font = { italic: true, color: { argb: TEXT_SECONDARY }, size: 10 }
   ws.getRow(2).height = 20
 
-  // KPIs (filas 4-5, columnas A, D, G, J, M)
+  // ── 5 KPIs en tarjetas (filas 4-5) ──
   const kpiCols = [1, 4, 7, 10, 13]
-  stats.slice(0, kpiCols.length).forEach((s, i) => {
+  const kpiLabels = [
+    'CLIENTES TOTALES',
+    'CLIENTES VISITADOS',
+    'CLIENTES CON VENTA',
+    'DINERO COBRADO',
+    'TASA DE CONVERSIÓN',
+  ]
+
+  for (let i = 0; i < 5; i++) {
     const c = kpiCols[i]
-    const toneColor = s.tone === 'danger' ? DANGER : s.tone === 'success' ? GREEN : GOLD
     const lc = ws.getCell(4, c)
-    lc.value = s.label.toUpperCase()
-    lc.font = { bold: true, size: 9, color: { argb: GRAY } }
+    lc.value = kpiLabels[i]
+    lc.font = { bold: true, size: 9, color: { argb: TEXT_SECONDARY } }
+    lc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WHITE_BG } }
+    lc.border = thinBorder()
+
     const vc = ws.getCell(5, c)
-    vc.value = s.value
-    vc.font = { bold: true, size: 20, color: { argb: toneColor } }
+    vc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WHITE_BG } }
+    vc.border = thinBorder()
     ws.mergeCells(5, c, 5, c + 1)
-  })
+
+    let kpiValue
+    if (i < 4) {
+      kpiValue = stats[i] ? stats[i].value : ''
+    } else {
+      // 5º KPI: tasa de conversión
+      const conVenta = stats[2] ? Number(String(stats[2].value).replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0 : 0
+      const visitados = stats[1] ? Number(String(stats[1].value).replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0 : 0
+      kpiValue = fmtConversion(conVenta, visitados)
+    }
+    vc.value = kpiValue
+    vc.font = { bold: true, size: 18, color: { argb: TEXT_PRIMARY } }
+  }
   ws.getRow(4).height = 16
   ws.getRow(5).height = 28
 
-  // Gráfico 1: Visitas por día
-  let r = tituloSeccion(ws, 7, 'Visitas por día de semana')
-  r = escribirTabla(
-    ws,
-    r + 1,
-    ['Día', 'Visitas'],
-    visitasDia.map((d) => [d.label, d.value]),
-    {}
-  )
+  // ── Gráfico 1: Visitas por día de semana ──
+  let r = 7
+  r = tituloSeccion(ws, r, 'Visitas por día de semana')
   let img = dibujarGraficoPNG({
     title: 'Visitas por día de semana',
     labels: visitasDia.map((d) => d.label),
     values: visitasDia.map((d) => d.value),
-    color: GOLD,
+    colorFn: colorVisitasDia,
   })
   let imageId = img ? wb.addImage({ base64: img.split(',')[1], extension: 'png' }) : null
   r = insertarGrafico(ws, imageId, r + 1)
 
-  // Gráfico 2: Dinero cobrado
+  // ── Gráfico 2: Dinero cobrado ──
   r = tituloSeccion(ws, r, 'Dinero cobrado')
-  r = escribirTabla(
-    ws,
-    r + 1,
-    ['Período', 'Monto'],
-    cobrado.map((d) => [d.label, d.value]),
-    { moneyCols: [2] }
-  )
   img = dibujarGraficoPNG({
     title: 'Dinero cobrado',
     labels: cobrado.map((d) => d.label),
     values: cobrado.map((d) => d.value),
-    color: GREEN,
+    colorFn: colorPorValor,
     fmt: fmtMoney,
   })
   imageId = img ? wb.addImage({ base64: img.split(',')[1], extension: 'png' }) : null
   r = insertarGrafico(ws, imageId, r + 1)
 
-  // Gráfico 3: Clientes nuevos
+  // ── Gráfico 3: Clientes nuevos ──
   r = tituloSeccion(ws, r, 'Clientes nuevos')
-  r = escribirTabla(
-    ws,
-    r + 1,
-    ['Período', 'Clientes'],
-    nuevos.map((d) => [d.label, d.value]),
-    {}
-  )
   img = dibujarGraficoPNG({
     title: 'Clientes nuevos',
     labels: nuevos.map((d) => d.label),
     values: nuevos.map((d) => d.value),
-    color: GOLD,
+    colorFn: colorPorValor,
   })
   imageId = img ? wb.addImage({ base64: img.split(',')[1], extension: 'png' }) : null
   insertarGrafico(ws, imageId, r + 1)
 
+  // Anchos de columna Dashboard
   ws.getColumn(1).width = 22
   ws.getColumn(2).width = 16
 
@@ -575,30 +635,102 @@ export async function exportarDashboard({
   const ws2 = wb.addWorksheet('Cobros y seguimiento')
   const s2t = ws2.getCell('A1')
   s2t.value = 'Cobros y seguimiento'
-  s2t.font = { bold: true, size: 15, color: { argb: GOLD } }
-  s2t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } }
-  ws2.getCell('B1').fill = s2t.fill
-  ws2.getCell('C1').fill = s2t.fill
-  ws2.getCell('D1').fill = s2t.fill
-  ws2.getCell('E1').fill = s2t.fill
+  s2t.font = { bold: true, size: 15, color: { argb: TEXT_PRIMARY } }
   ws2.getRow(1).height = 26
 
-  let r2 = tituloSeccion(ws2, 3, 'Próximos cobros')
-  r2 = escribirTabla(
-    ws2,
-    r2 + 1,
-    ['Cliente', 'Zona / Tipo', 'Monto', 'Fecha', 'Estado'],
-    proximosCobros.map((c) => [c.nombre, c.detalle, c.monto || 0, c.date, c.badge]),
-    { moneyCols: [3] }
-  )
-  r2 = tituloSeccion(ws2, r2 + 2, 'Clientes sin visitar (+15 días)')
-  escribirTabla(
-    ws2,
-    r2 + 1,
-    ['Cliente', 'Zona', 'Tipo', 'Días sin visita'],
-    sinVisitar.map((c) => [c.nombre, c.zona, c.tipo, c.dias === null ? 'Sin visitas' : c.dias]),
-    {}
-  )
+  // ── Próximos cobros ──
+  let r2 = 3
+  r2 = tituloSeccion(ws2, r2, 'Próximos cobros')
+
+  const cobroHeaders = ['Cliente', 'Zona / Tipo', 'Monto', 'Fecha', 'Estado']
+  const cobroHeaderRow = ws2.getRow(r2 + 1)
+  cobroHeaders.forEach((h, i) => {
+    const cell = cobroHeaderRow.getCell(i + 1)
+    cell.value = h
+    cell.font = { bold: true, color: { argb: TEXT_PRIMARY, size: 11 } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_LIGHT } }
+    cell.border = bottomBorder()
+  })
+  cobroHeaderRow.height = 22
+
+  proximosCobros.forEach((c, i) => {
+    const row = ws2.getRow(r2 + 2 + i)
+    const vals = [c.nombre, c.detalle, c.monto || 0, c.date, c.badge]
+    vals.forEach((v, j) => {
+      const cell = row.getCell(j + 1)
+      cell.value = v
+      cell.font = { color: { argb: TEXT_PRIMARY } }
+      cell.border = bottomBorder()
+      if (j === 2) cell.numFmt = '"$"#,##0.00'
+      // Columna Estado: color por badge
+      if (j === 4) {
+        const badge = String(v || '').toLowerCase()
+        if (badge.includes('pendiente')) {
+          cell.font = { bold: true, color: { argb: RED } }
+        } else if (badge.includes('vence')) {
+          cell.font = { bold: true, color: { argb: BLUE } }
+        }
+      }
+    })
+    row.height = 19
+  })
+
+  r2 = r2 + 2 + Math.max(1, proximosCobros.length) + 2
+
+  // ── Clientes sin visitar ──
+  r2 = tituloSeccion(ws2, r2, 'Clientes sin visitar (+15 días)')
+
+  const sinVHeaders = ['Cliente', 'Zona', 'Tipo', 'Días sin visita']
+  const sinVHeaderRow = ws2.getRow(r2 + 1)
+  sinVHeaders.forEach((h, i) => {
+    const cell = sinVHeaderRow.getCell(i + 1)
+    cell.value = h
+    cell.font = { bold: true, color: { argb: TEXT_PRIMARY, size: 11 } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_LIGHT } }
+    cell.border = bottomBorder()
+  })
+  sinVHeaderRow.height = 22
+
+  sinVisitar.forEach((c, i) => {
+    const row = ws2.getRow(r2 + 2 + i)
+    const diasVal = c.dias === null ? 'Sin visitas' : c.dias
+    const vals = [c.nombre, c.zona, c.tipo, diasVal]
+    vals.forEach((v, j) => {
+      const cell = row.getCell(j + 1)
+      cell.value = v
+      cell.font = { color: { argb: TEXT_PRIMARY } }
+      cell.border = bottomBorder()
+      // Columna Días sin visita: color por urgencia
+      if (j === 3) {
+        if (c.dias === null || c.dias > 15) {
+          cell.font = { bold: true, color: { argb: RED } }
+        } else if (c.dias >= 7) {
+          cell.font = { bold: true, color: { argb: BLUE } }
+        } else {
+          cell.font = { bold: true, color: { argb: GREEN } }
+        }
+      }
+    })
+    row.height = 19
+  })
+
+  r2 = r2 + 2 + Math.max(1, sinVisitar.length) + 2
+
+  // ── Prioridades ──
+  r2 = tituloSeccion(ws2, r2, 'Prioridades')
+  const prioridades = [
+    { emoji: '🔴', texto: 'Cobros pendientes', color: RED },
+    { emoji: '🔴', texto: 'Clientes sin visitar', color: RED },
+    { emoji: '🔵', texto: 'Seguimientos próximos', color: BLUE },
+    { emoji: '🟢', texto: 'Clientes con venta', color: GREEN },
+  ]
+  prioridades.forEach((p, i) => {
+    const cell = ws2.getRow(r2 + 1 + i).getCell(1)
+    cell.value = `${p.emoji} ${p.texto}`
+    cell.font = { color: { argb: p.color }, size: 11 }
+  })
+
+  // Anchos de columna Cobros y seguimiento
   ws2.getColumn(1).width = 34
   ws2.getColumn(2).width = 26
   ws2.getColumn(3).width = 14
@@ -609,9 +741,7 @@ export async function exportarDashboard({
   const ws3 = wb.addWorksheet('Visitas del período')
   const s3t = ws3.getCell('A1')
   s3t.value = `Visitas del período (${visitasPeriodo.length})`
-  s3t.font = { bold: true, size: 15, color: { argb: GOLD } }
-  s3t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } }
-  for (let i = 2; i <= 10; i++) ws3.getCell(1, i).fill = s3t.fill
+  s3t.font = { bold: true, size: 15, color: { argb: TEXT_PRIMARY } }
   ws3.getRow(1).height = 26
 
   const headersV = [
@@ -626,18 +756,76 @@ export async function exportarDashboard({
     'Comentarios',
     'Próximo paso',
   ]
-  escribirTabla(ws3, 3, headersV, visitasPeriodo.map((v) => [
-    v.Fecha || '',
-    v.Hora_Visita || '',
-    v.Establecimiento || '',
-    v.Tipo_Negocio || '',
-    v.Direccion || '',
-    v.Persona_Contactada || '',
-    v.Productos_Presentados || '',
-    v.Pedido ? 'Sí' : 'No',
-    v.Detalle_Pedido || '',
-    v.Proximo_Paso || '',
-  ]))
+  const headerRow3 = ws3.getRow(3)
+  headersV.forEach((h, i) => {
+    const cell = headerRow3.getCell(i + 1)
+    cell.value = h
+    cell.font = { bold: true, color: { argb: TEXT_PRIMARY, size: 11 } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRAY_LIGHT } }
+    cell.border = bottomBorder()
+  })
+  headerRow3.height = 22
+
+  const normSinAcentos = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  visitasPeriodo.forEach((v, i) => {
+    // Normalizar Pedido
+    const pedidoRaw = v.Pedido
+    let pedidoNorm
+    if (pedidoRaw === true || String(pedidoRaw).toLowerCase() === 'si' || String(pedidoRaw).toLowerCase() === 'sí') {
+      pedidoNorm = 'Sí'
+    } else if (pedidoRaw === false || String(pedidoRaw).toLowerCase() === 'no') {
+      pedidoNorm = 'No'
+    } else {
+      pedidoNorm = 'Pendiente'
+    }
+
+    const row = ws3.getRow(4 + i)
+    const vals = [
+      v.Fecha || '',
+      v.Hora_Visita || '',
+      v.Establecimiento || '',
+      v.Tipo_Negocio || '',
+      v.Direccion || '',
+      v.Persona_Contactada || '',
+      v.Productos_Presentados || '',
+      pedidoNorm,
+      v.Detalle_Pedido || '',
+      v.Proximo_Paso || '',
+    ]
+    vals.forEach((val, j) => {
+      const cell = row.getCell(j + 1)
+      cell.value = val
+      cell.font = { color: { argb: TEXT_PRIMARY } }
+      cell.border = bottomBorder()
+
+      // Columna Pedido (índice 7)
+      if (j === 7) {
+        if (pedidoNorm === 'Sí') {
+          cell.font = { bold: true, color: { argb: GREEN } }
+        } else if (pedidoNorm === 'No') {
+          cell.font = { bold: true, color: { argb: RED } }
+        } else {
+          cell.font = { bold: true, color: { argb: BLUE } }
+        }
+      }
+
+      // Columna Próximo paso (índice 9)
+      if (j === 9) {
+        const txt = normSinAcentos(val)
+        if (!txt || txt.includes('completad')) {
+          cell.font = { color: { argb: GREEN } }
+        } else if (txt.includes('cobro')) {
+          cell.font = { color: { argb: RED } }
+        } else if (txt.includes('seguimiento') || txt.includes('visita')) {
+          cell.font = { color: { argb: BLUE } }
+        }
+      }
+    })
+    row.height = 19
+  })
+
+  // Anchos de columna Visitas del período
   ws3.getColumn(1).width = 12
   ws3.getColumn(2).width = 12
   ws3.getColumn(3).width = 32
