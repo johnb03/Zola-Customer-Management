@@ -1,357 +1,432 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { getClientes, getVisitas, getCobros, exportarDashboard } from '../api.js'
-import { guardarEnCarpetaPc } from '../utils/exportToFolder.js'
-import { dataVersion } from '../store.js'
-import { formatearMonto } from '../utils/dinero.js'
+import { ref, computed, watch } from "vue";
+import { useRouter } from "vue-router";
+import {
+  getClientes,
+  getVisitas,
+  getCobros,
+  exportarDashboard,
+} from "../api.js";
+import { guardarEnCarpetaPc } from "../utils/exportToFolder.js";
+import { dataVersion } from "../store.js";
+import { formatearMonto } from "../utils/dinero.js";
 
 /* ── State ── */
-const router = useRouter()
-const clientes = ref([])
-const visitas = ref([])
-const cobros = ref([])
-const cargando = ref(true)
-const error = ref('')
+const router = useRouter();
+const clientes = ref([]);
+const visitas = ref([]);
+const cobros = ref([]);
+const cargando = ref(true);
+const error = ref("");
 
 const cargar = async () => {
-  cargando.value = true
+  cargando.value = true;
   try {
-    const [c, v, cb] = await Promise.all([getClientes(), getVisitas(), getCobros()])
-    clientes.value = c
-    visitas.value = v
-    cobros.value = cb
+    const [c, v, cb] = await Promise.all([
+      getClientes(),
+      getVisitas(),
+      getCobros(),
+    ]);
+    clientes.value = c;
+    visitas.value = v;
+    cobros.value = cb;
   } catch (e) {
-    error.value = e.message
+    error.value = e.message;
   } finally {
-    cargando.value = false
+    cargando.value = false;
   }
-}
+};
 
-cargar()
-watch(dataVersion, cargar)
+cargar();
+watch(dataVersion, cargar);
 
 /* ── Periodo ── */
-const period = ref('semanal')
+const period = ref("semanal");
 const periods = [
-  { key: 'semanal', label: 'Semanal' },
-  { key: 'mensual', label: 'Mensual' },
-  { key: 'anual', label: 'Anual' },
-  { key: 'personalizado', label: 'Personalizado' },
-]
+  { key: "semanal", label: "Semanal" },
+  { key: "mensual", label: "Mensual" },
+  { key: "anual", label: "Anual" },
+  { key: "personalizado", label: "Personalizado" },
+];
 
 /* ── Rango personalizado (desde/hasta) ── */
 const fmtInputDate = (d) => {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 const semanaActualInput = () => {
-  const now = new Date()
-  const lunes = new Date(now)
-  lunes.setHours(0, 0, 0, 0)
-  lunes.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-  const domingo = new Date(lunes)
-  domingo.setDate(lunes.getDate() + 6)
-  return { lunes: fmtInputDate(lunes), domingo: fmtInputDate(domingo) }
-}
+  const now = new Date();
+  const lunes = new Date(now);
+  lunes.setHours(0, 0, 0, 0);
+  lunes.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  return { lunes: fmtInputDate(lunes), domingo: fmtInputDate(domingo) };
+};
 
-const customStart = ref('')
-const customEnd = ref('')
+const customStart = ref("");
+const customEnd = ref("");
 
 const setPeriod = (key) => {
-  period.value = key
-  if (key === 'personalizado') {
-    const { lunes, domingo } = semanaActualInput()
-    customStart.value = lunes
-    customEnd.value = domingo
+  period.value = key;
+  if (key === "personalizado") {
+    const { lunes, domingo } = semanaActualInput();
+    customStart.value = lunes;
+    customEnd.value = domingo;
   }
-}
+};
 
 const periodRange = computed(() => {
-  const now = new Date()
-  if (period.value === 'personalizado') {
-    const start = parseFecha(customStart.value)
-    const end = parseFecha(customEnd.value)
+  const now = new Date();
+  if (period.value === "personalizado") {
+    const start = parseFecha(customStart.value);
+    const end = parseFecha(customEnd.value);
     if (start && end && end >= start) {
-      start.setHours(0, 0, 0, 0)
-      end.setHours(23, 59, 59, 999)
-      return { start, end }
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
     }
     // Sin rango válido → semana actual como respaldo
-    const { lunes, domingo } = semanaActualInput()
-    return { start: parseFecha(lunes), end: parseFecha(domingo) }
+    const { lunes, domingo } = semanaActualInput();
+    return { start: parseFecha(lunes), end: parseFecha(domingo) };
   }
-  if (period.value === 'semanal') {
+  if (period.value === "semanal") {
     // Semana natural: lunes a domingo
-    const start = new Date(now)
-    start.setHours(0, 0, 0, 0)
-    start.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-    const end = new Date(start)
-    end.setDate(start.getDate() + 6)
-    end.setHours(23, 59, 59, 999)
-    return { start, end }
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
   }
-  if (period.value === 'mensual') {
+  if (period.value === "mensual") {
     // Mes calendario: 1 al 30/31
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-    return { start, end }
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    return { start, end };
   }
   // Año calendario completo
-  const start = new Date(now.getFullYear(), 0, 1)
-  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-  return { start, end }
-})
+  const start = new Date(now.getFullYear(), 0, 1);
+  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  return { start, end };
+});
 
 const parseFecha = (s) => {
-  const parts = String(s || '').split('-')
-  if (parts.length !== 3) return null
-  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-  return isNaN(d.getTime()) ? null : d
-}
+  const parts = String(s || "").split("-");
+  if (parts.length !== 3) return null;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  return isNaN(d.getTime()) ? null : d;
+};
 
 const isInRange = (fechaStr) => {
-  const d = parseFecha(fechaStr)
-  if (!d) return false
-  return d >= periodRange.value.start && d <= periodRange.value.end
-}
+  const d = parseFecha(fechaStr);
+  if (!d) return false;
+  return d >= periodRange.value.start && d <= periodRange.value.end;
+};
 
 /* ── Métricas ── */
-const visitasPeriodo = computed(() => visitas.value.filter((v) => isInRange(v.Fecha)))
+const visitasPeriodo = computed(() =>
+  visitas.value.filter((v) => isInRange(v.Fecha)),
+);
 
 const statVisitados = computed(() => {
-  const unique = new Set(visitasPeriodo.value.map((v) => (v.Establecimiento || '').trim().toLowerCase()))
-  return unique.size
-})
+  const unique = new Set(
+    visitasPeriodo.value.map((v) =>
+      (v.Establecimiento || "").trim().toLowerCase(),
+    ),
+  );
+  return unique.size;
+});
 
 const statVenta = computed(
-  () => clientes.value.filter((c) => String(c.Fecha_Cobro || '').trim()).length
-)
+  () => clientes.value.filter((c) => String(c.Fecha_Cobro || "").trim()).length,
+);
 
 const statDineroCobrado = computed(() => {
   const total = cobros.value
     .filter((cb) => isInRange(cb.Fecha_Cobrado))
-    .reduce((acc, cb) => acc + (Number(cb.Monto) || 0), 0)
-  return total ? `$${formatearMonto(total)}` : '$0'
-})
+    .reduce((acc, cb) => acc + (Number(cb.Monto) || 0), 0);
+  return total ? `$${formatearMonto(total)}` : "$0";
+});
 
-const statNuevos = computed(() =>
-  clientes.value.filter(
-    (c) => c.Origen !== 'importado' && isInRange(c.Fecha_Registro)
-  ).length
-)
+const statNuevos = computed(
+  () =>
+    clientes.value.filter(
+      (c) => c.Origen !== "importado" && isInRange(c.Fecha_Registro),
+    ).length,
+);
 
 // Histórico: total siempre, sin filtro de período.
-const statClientesTotales = computed(() => clientes.value.length)
+const statClientesTotales = computed(() => clientes.value.length);
 
 const stats = computed(() => [
-  { label: 'Clientes totales', value: statClientesTotales.value, tone: 'success' },
-  { label: 'Clientes visitados', value: statVisitados.value, tone: 'success' },
-  { label: 'Clientes con venta', value: statVenta.value, tone: 'success' },
-  { label: 'Dinero cobrado', value: statDineroCobrado.value, tone: 'danger' },
-  { label: 'Clientes nuevos', value: statNuevos.value, tone: 'gold' },
-])
+  {
+    label: "Clientes totales",
+    value: statClientesTotales.value,
+    tone: "success",
+  },
+  { label: "Clientes visitados", value: statVisitados.value, tone: "success" },
+  { label: "Clientes con venta", value: statVenta.value, tone: "success" },
+  { label: "Dinero cobrado", value: statDineroCobrado.value, tone: "danger" },
+  { label: "Clientes nuevos", value: statNuevos.value, tone: "gold" },
+]);
 
 /* ── Gráfica: Visitas por día de semana ── */
-const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const dayNames = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+];
 
 const barData = computed(() => {
-  const counts = [0, 0, 0, 0, 0, 0, 0]
+  const counts = [0, 0, 0, 0, 0, 0, 0];
   visitasPeriodo.value.forEach((v) => {
-    const d = parseFecha(v.Fecha)
+    const d = parseFecha(v.Fecha);
     if (d) {
-      const idx = (d.getDay() + 6) % 7
-      counts[idx]++
+      const idx = (d.getDay() + 6) % 7;
+      counts[idx]++;
     }
-  })
-  return counts
-})
+  });
+  return counts;
+});
 
-const yMax = computed(() => Math.max(1, ...barData.value))
-const barHeight = (v) => Math.max(4, (v / yMax.value) * 100)
+const yMax = computed(() => Math.max(1, ...barData.value));
+const barHeight = (v) => Math.max(4, (v / yMax.value) * 100);
 
 /* ── Gráficas de crecimiento (dinero cobrado / clientes nuevos) ──
    Los buckets siguen SIEMPRE la pestaña de período elegida:
    semanal → 7 barras (lun..dom), mensual → 1 por día (30/31), anual → 12 meses. */
 const periodBuckets = computed(() => {
-  const { start, end } = periodRange.value
-  const buckets = []
-  if (period.value === 'anual') {
+  const { start, end } = periodRange.value;
+  const buckets = [];
+  if (period.value === "anual") {
     for (let m = 0; m < 12; m++) {
-      const s = new Date(start.getFullYear(), m, 1)
-      const e = new Date(start.getFullYear(), m + 1, 0, 23, 59, 59, 999)
+      const s = new Date(start.getFullYear(), m, 1);
+      const e = new Date(start.getFullYear(), m + 1, 0, 23, 59, 59, 999);
       buckets.push({
-        label: s.toLocaleDateString('es-AR', { month: 'short' }),
+        label: s.toLocaleDateString("es-AR", { month: "short" }),
         start: s,
         end: e,
-      })
+      });
     }
-    return buckets
+    return buckets;
   }
-  if (period.value === 'personalizado') {
-    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1
+  if (period.value === "personalizado") {
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
     if (diffDays <= 31) {
       // Rango corto: un bucket por día
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const s = new Date(d)
-        s.setHours(0, 0, 0, 0)
-        const e = new Date(d)
-        e.setHours(23, 59, 59, 999)
-        buckets.push({ label: `${s.getDate()}/${s.getMonth() + 1}`, start: s, end: e })
+        const s = new Date(d);
+        s.setHours(0, 0, 0, 0);
+        const e = new Date(d);
+        e.setHours(23, 59, 59, 999);
+        buckets.push({
+          label: `${s.getDate()}/${s.getMonth() + 1}`,
+          start: s,
+          end: e,
+        });
       }
-      return buckets
+      return buckets;
     }
     // Rango largo: un bucket por mes
-    const totMonths = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1
-    const showYear = totMonths > 12 || end.getFullYear() !== start.getFullYear()
+    const totMonths =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      end.getMonth() -
+      start.getMonth() +
+      1;
+    const showYear =
+      totMonths > 12 || end.getFullYear() !== start.getFullYear();
     for (let i = 0; i < totMonths; i++) {
-      const ms = new Date(start.getFullYear(), start.getMonth() + i, 1)
-      const me = new Date(start.getFullYear(), start.getMonth() + i + 1, 0, 23, 59, 59, 999)
-      const s = new Date(Math.max(start.getTime(), ms.getTime()))
-      const e = new Date(Math.min(end.getTime(), me.getTime()))
+      const ms = new Date(start.getFullYear(), start.getMonth() + i, 1);
+      const me = new Date(
+        start.getFullYear(),
+        start.getMonth() + i + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+      const s = new Date(Math.max(start.getTime(), ms.getTime()));
+      const e = new Date(Math.min(end.getTime(), me.getTime()));
       buckets.push({
-        label: ms.toLocaleDateString('es-AR', { month: 'short' }) + (showYear ? ` ${ms.getFullYear()}` : ''),
+        label:
+          ms.toLocaleDateString("es-AR", { month: "short" }) +
+          (showYear ? ` ${ms.getFullYear()}` : ""),
         start: s,
         end: e,
-      })
+      });
     }
-    return buckets
+    return buckets;
   }
-  const diaIdx = (d) => (d.getDay() + 6) % 7 // 0 = lunes
+  const diaIdx = (d) => (d.getDay() + 6) % 7; // 0 = lunes
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const s = new Date(d)
-    s.setHours(0, 0, 0, 0)
-    const e = new Date(d)
-    e.setHours(23, 59, 59, 999)
+    const s = new Date(d);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(d);
+    e.setHours(23, 59, 59, 999);
     buckets.push({
-      label: period.value === 'semanal' ? days[diaIdx(d)] : String(s.getDate()),
+      label: period.value === "semanal" ? days[diaIdx(d)] : String(s.getDate()),
       start: s,
       end: e,
-    })
+    });
   }
-  return buckets
-})
+  return buckets;
+});
 
-const fmtMoney = (n) => '$' + formatearMonto(n)
+const fmtMoney = (n) => "$" + formatearMonto(n);
 
 const cobradoData = computed(() =>
   periodBuckets.value.map((r) => ({
     label: r.label,
     value: cobros.value
       .filter((cb) => {
-        const d = parseFecha(cb.Fecha_Cobrado)
-        return d && d >= r.start && d <= r.end
+        const d = parseFecha(cb.Fecha_Cobrado);
+        return d && d >= r.start && d <= r.end;
       })
       .reduce((acc, cb) => acc + (Number(cb.Monto) || 0), 0),
-  }))
-)
+  })),
+);
 
 const nuevosData = computed(() =>
   periodBuckets.value.map((r) => ({
     label: r.label,
     value: clientes.value.filter((c) => {
-      const d = parseFecha(c.Fecha_Registro)
-      return c.Origen !== 'importado' && d && d >= r.start && d <= r.end
+      const d = parseFecha(c.Fecha_Registro);
+      return c.Origen !== "importado" && d && d >= r.start && d <= r.end;
     }).length,
-  }))
-)
+  })),
+);
 
-const cobradoMax = computed(() => Math.max(1, ...cobradoData.value.map((d) => d.value)))
-const nuevosMax = computed(() => Math.max(1, ...nuevosData.value.map((d) => d.value)))
-const barH = (v, max) => Math.max(4, (v / max) * 100)
+const cobradoMax = computed(() =>
+  Math.max(1, ...cobradoData.value.map((d) => d.value)),
+);
+const nuevosMax = computed(() =>
+  Math.max(1, ...nuevosData.value.map((d) => d.value)),
+);
+const barH = (v, max) => Math.max(4, (v / max) * 100);
 
 /* ── Próximos cobros ── */
 const proximosCobros = computed(() => {
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
   return clientes.value
     .filter((c) => {
-      if (!c.Fecha_Cobro) return false
-      const d = parseFecha(c.Fecha_Cobro)
-      if (!d) return false
-      return d >= now
+      if (!c.Fecha_Cobro) return false;
+      const d = parseFecha(c.Fecha_Cobro);
+      if (!d) return false;
+      return d >= now;
     })
     .sort((a, b) => parseFecha(a.Fecha_Cobro) - parseFecha(b.Fecha_Cobro))
     .slice(0, 5)
     .map((c) => {
-      const d = parseFecha(c.Fecha_Cobro)
-      const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24))
+      const d = parseFecha(c.Fecha_Cobro);
+      const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
       return {
         name: c.Nombre,
-        sub: [c.Zona, c.Tipo_Negocio].filter(Boolean).join(' · ') || c.Direccion || '',
-        amount: c.Monto ? `$${formatearMonto(c.Monto)}` : '',
+        sub:
+          [c.Zona, c.Tipo_Negocio].filter(Boolean).join(" · ") ||
+          c.Direccion ||
+          "",
+        amount: c.Monto ? `$${formatearMonto(c.Monto)}` : "",
         monto: Number(c.Monto) || 0,
         date: formatFechaCorta(c.Fecha_Cobro),
-        badge: diff <= 7 ? 'Vence pronto' : 'Pendiente',
-        tone: diff <= 7 ? 'warning' : 'danger',
-      }
-    })
-})
+        badge: diff <= 7 ? "Vence pronto" : "Pendiente",
+        tone: diff <= 7 ? "warning" : "danger",
+      };
+    });
+});
 
 const formatFechaCorta = (s) => {
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
-  const d = parseFecha(s)
-  if (!d) return s
-  return `${d.getDate()} ${months[d.getMonth()]}`
-}
+  const months = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  const d = parseFecha(s);
+  if (!d) return s;
+  return `${d.getDate()} ${months[d.getMonth()]}`;
+};
 
 /* ── Clientes sin visitar (+15 días) ── */
 const clientesSinVisitar = computed(() => {
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  const visitasList = visitas.value
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const visitasList = visitas.value;
 
   return clientes.value
     .map((c) => {
-      const nombreLower = (c.Nombre || '').toLowerCase()
-      let mostRecent = null
+      const nombreLower = (c.Nombre || "").toLowerCase();
+      let mostRecent = null;
       // 1) Si el cliente registró fecha de visita en su ficha (ClientesView),
       //    esa es una fuente directa de cuándo se lo visitó.
-      const fv = c.Fecha_Visita
+      const fv = c.Fecha_Visita;
       if (fv) {
-        const d = parseFecha(fv)
-        if (d && (!mostRecent || d > mostRecent)) mostRecent = d
+        const d = parseFecha(fv);
+        if (d && (!mostRecent || d > mostRecent)) mostRecent = d;
       }
       // 2) Si hay un registro en el store de visitas con el mismo nombre,
       //    usar la más reciente de esas fechas.
       for (const v of visitasList) {
-        if ((v.Establecimiento || '').toLowerCase() === nombreLower) {
-          const d = parseFecha(v.Fecha)
-          if (d && (!mostRecent || d > mostRecent)) mostRecent = d
+        if ((v.Establecimiento || "").toLowerCase() === nombreLower) {
+          const d = parseFecha(v.Fecha);
+          if (d && (!mostRecent || d > mostRecent)) mostRecent = d;
         }
       }
       const daysSince = mostRecent
         ? Math.floor((now - mostRecent) / (1000 * 60 * 60 * 24))
-        : Infinity
-      return { ...c, daysSince }
+        : Infinity;
+      return { ...c, daysSince };
     })
     .filter((c) => c.daysSince > 15)
     .sort((a, b) => b.daysSince - a.daysSince)
-    .slice(0, 10)
-})
+    .slice(0, 10);
+});
 
-const goToClientes = () => router.push('/clientes')
+const goToClientes = () => router.push("/clientes");
 
 /* ── Exportar ── */
-const exportando = ref(false)
-const exportMsg = ref('')
+const exportando = ref(false);
+const exportMsg = ref("");
 
 const doExport = async () => {
-  exportando.value = true
-  exportMsg.value = ''
+  exportando.value = true;
+  exportMsg.value = "";
   try {
     const fmtDMA = (s) => {
-      const d = parseFecha(s)
-      return d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}` : s
-    }
+      const d = parseFecha(s);
+      return d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}` : s;
+    };
     const periodoLabel =
-      period.value === 'personalizado'
+      period.value === "personalizado"
         ? `Personalizado (${fmtDMA(customStart.value)} – ${fmtDMA(customEnd.value)})`
-        : periods.find((p) => p.key === period.value)?.label || period.value
+        : periods.find((p) => p.key === period.value)?.label || period.value;
     const { blob, nombre } = await exportarDashboard({
       periodo: periodoLabel,
       stats: stats.value,
@@ -367,22 +442,23 @@ const doExport = async () => {
       })),
       sinVisitar: clientesSinVisitar.value.map((c) => ({
         nombre: c.Nombre,
-        zona: c.Zona || '',
-        tipo: c.Tipo_Negocio || '',
+        zona: c.Zona || "",
+        tipo: c.Tipo_Negocio || "",
         dias: c.daysSince === Infinity ? null : c.daysSince,
       })),
       visitasPeriodo: visitasPeriodo.value,
-    })
-    const guardado = await guardarEnCarpetaPc(blob, nombre)
-    if (guardado.ok) exportMsg.value = `Guardado en ${guardado.carpeta}/${nombre}`
-    else if (guardado.cancelado) exportMsg.value = 'Exportación cancelada.'
-    else exportMsg.value = 'Se inició la descarga del Excel.'
+    });
+    const guardado = await guardarEnCarpetaPc(blob, nombre);
+    if (guardado.ok)
+      exportMsg.value = `Guardado en ${guardado.carpeta}/${nombre}`;
+    else if (guardado.cancelado) exportMsg.value = "Exportación cancelada.";
+    else exportMsg.value = "Se inició la descarga del Excel.";
   } catch (e) {
-    exportMsg.value = `Error al exportar: ${e.message}`
+    exportMsg.value = `Error al exportar: ${e.message}`;
   } finally {
-    exportando.value = false
+    exportando.value = false;
   }
-}
+};
 </script>
 
 <template>
@@ -399,19 +475,41 @@ const doExport = async () => {
             :class="{ active: period === p.key }"
             type="button"
             @click="setPeriod(p.key)"
-          >{{ p.label }}</button>
+          >
+            {{ p.label }}
+          </button>
         </div>
         <div v-if="period === 'personalizado'" class="custom-range">
-          <label class="custom-label">Desde
+          <label class="custom-label"
+            >Desde
             <input type="date" v-model="customStart" class="date-input" />
           </label>
-          <label class="custom-label">Hasta
+          <label class="custom-label"
+            >Hasta
             <input type="date" v-model="customEnd" class="date-input" />
           </label>
         </div>
-        <button class="btn btn-export" type="button" :disabled="exportando" @click="doExport">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          {{ exportando ? 'Exportando…' : 'Exportar vista a Excel' }}
+        <button
+          class="btn btn-export"
+          type="button"
+          :disabled="exportando"
+          @click="doExport"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {{ exportando ? "Exportando…" : "Exportar vista a Excel" }}
         </button>
       </div>
     </header>
@@ -447,7 +545,10 @@ const doExport = async () => {
                 <div v-for="(d, i) in days" :key="d" class="bar-col">
                   <span class="bar-val num">{{ barData[i] }}</span>
                   <div class="bar-track">
-                    <div class="bar-fill" :style="{ height: barHeight(barData[i]) + '%' }"></div>
+                    <div
+                      class="bar-fill"
+                      :style="{ height: barHeight(barData[i]) + '%' }"
+                    ></div>
                   </div>
                   <span class="bar-label">{{ d }}</span>
                 </div>
@@ -467,15 +568,22 @@ const doExport = async () => {
           <div class="chart-area">
             <div class="y-axis">
               <span class="y-tick num">{{ fmtMoney(cobradoMax) }}</span>
-              <span class="y-tick num">{{ fmtMoney(Math.round(cobradoMax / 2)) }}</span>
+              <span class="y-tick num">{{
+                fmtMoney(Math.round(cobradoMax / 2))
+              }}</span>
               <span class="y-tick num">$0</span>
             </div>
             <div class="bars-container">
               <div class="bars">
                 <div v-for="(d, i) in cobradoData" :key="i" class="bar-col">
-                  <span class="bar-val num">{{ d.value ? fmtMoney(d.value) : '' }}</span>
+                  <span class="bar-val num">{{
+                    d.value ? fmtMoney(d.value) : ""
+                  }}</span>
                   <div class="bar-track">
-                    <div class="bar-fill bar-fill-green" :style="{ height: barH(d.value, cobradoMax) + '%' }"></div>
+                    <div
+                      class="bar-fill bar-fill-green"
+                      :style="{ height: barH(d.value, cobradoMax) + '%' }"
+                    ></div>
                   </div>
                   <span class="bar-label">{{ d.label }}</span>
                 </div>
@@ -503,7 +611,10 @@ const doExport = async () => {
                 <div v-for="(d, i) in nuevosData" :key="i" class="bar-col">
                   <span class="bar-val num">{{ d.value }}</span>
                   <div class="bar-track">
-                    <div class="bar-fill" :style="{ height: barH(d.value, nuevosMax) + '%' }"></div>
+                    <div
+                      class="bar-fill"
+                      :style="{ height: barH(d.value, nuevosMax) + '%' }"
+                    ></div>
                   </div>
                   <span class="bar-label">{{ d.label }}</span>
                 </div>
@@ -526,9 +637,13 @@ const doExport = async () => {
                 <span class="cobro-sub">{{ c.sub }}</span>
               </div>
               <div class="cobro-right">
-                <span v-if="c.amount" class="cobro-amount num">{{ c.amount }}</span>
+                <span v-if="c.amount" class="cobro-amount num">{{
+                  c.amount
+                }}</span>
                 <span class="cobro-date">{{ c.date }}</span>
-                <span class="badge" :class="'badge-' + c.tone">{{ c.badge }}</span>
+                <span class="badge" :class="'badge-' + c.tone">{{
+                  c.badge
+                }}</span>
               </div>
             </div>
           </div>
@@ -536,7 +651,12 @@ const doExport = async () => {
         </article>
 
         <article class="card cobros-card">
-          <h2 class="cobros-title">Clientes sin visitar (+15 dias) <span class="sin-visitar-count">{{ clientesSinVisitar.length }}</span></h2>
+          <h2 class="cobros-title">
+            Clientes sin visitar (+15 dias)
+            <span class="sin-visitar-count">{{
+              clientesSinVisitar.length
+            }}</span>
+          </h2>
           <hr class="firma-sm" />
           <div v-if="clientesSinVisitar.length" class="cobros-list">
             <div
@@ -547,16 +667,28 @@ const doExport = async () => {
             >
               <div class="cobro-left">
                 <span class="cobro-name">{{ c.Nombre }}</span>
-                <span class="cobro-sub">{{ c.Zona || '' }}{{ c.Zona && c.Tipo_Negocio ? ' · ' : '' }}{{ c.Tipo_Negocio || '' }}</span>
+                <span class="cobro-sub"
+                  >{{ c.Zona || "" }}{{ c.Zona && c.Tipo_Negocio ? " · " : ""
+                  }}{{ c.Tipo_Negocio || "" }}</span
+                >
               </div>
               <div class="cobro-right">
-                <span class="days-label" :class="c.daysSince > 30 ? 'days-danger' : 'days-warning'">
-                  {{ c.daysSince === Infinity ? 'Sin visitas' : c.daysSince + ' dias sin visita' }}
+                <span
+                  class="days-label"
+                  :class="c.daysSince > 30 ? 'days-danger' : 'days-warning'"
+                >
+                  {{
+                    c.daysSince === Infinity
+                      ? "Sin visitas"
+                      : c.daysSince + " dias sin visita"
+                  }}
                 </span>
               </div>
             </div>
           </div>
-          <p v-else class="empty">Todos los clientes fueron visitados recientemente.</p>
+          <p v-else class="empty">
+            Todos los clientes fueron visitados recientemente.
+          </p>
         </article>
       </div>
 
@@ -642,7 +774,7 @@ const doExport = async () => {
 /* ── Export button ── */
 .btn-export {
   background: var(--accent-gold);
-  color: #15100D;
+  color: #15100d;
   font-weight: 700;
   font-size: 13px;
   padding: 8px 16px;
@@ -702,7 +834,7 @@ const doExport = async () => {
   margin: 0;
   font-size: 28px;
   font-weight: 900;
-  color: #EDE6D8;
+  color: #ede6d8;
 }
 
 /* ── Chart card ── */
@@ -831,7 +963,11 @@ const doExport = async () => {
 .firma-sm {
   height: 1px;
   border: 0;
-  background: linear-gradient(90deg, var(--accent-gold), rgba(201, 162, 39, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--accent-gold),
+    rgba(201, 162, 39, 0) 100%
+  );
   opacity: 0.5;
   margin: 0 0 16px;
 }
@@ -956,6 +1092,10 @@ const doExport = async () => {
 }
 
 @media (max-width: 600px) {
+  .dash-title {
+    text-align: center;
+  }
+
   .dash-header {
     flex-direction: column;
     align-items: stretch;
@@ -968,6 +1108,7 @@ const doExport = async () => {
 
   .filter-chips {
     justify-content: center;
+    flex-wrap: wrap-reverse;
   }
 
   .stats-row {
