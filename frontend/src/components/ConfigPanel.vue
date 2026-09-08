@@ -7,6 +7,7 @@ import { confirmar } from '../composables/useConfirm.js'
 import DatosView from '../views/DatosView.vue'
 import { PROVIDERS, getAgenteConfig, setAgenteConfig, testAgenteKey } from '../agente.js'
 import { resetAllData } from '../db.js'
+import { hoyLocal } from '../utils/fechas.js'
 
 const activeTab = ref('datos-usuario')
 const panelRef = ref(null)
@@ -160,7 +161,7 @@ const exportarDatosClick = async () => {
     const backup = await exportarDatos()
     const json = JSON.stringify(backup, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
-    const fecha = new Date().toISOString().slice(0, 10)
+    const fecha = hoyLocal()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

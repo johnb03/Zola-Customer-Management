@@ -3,6 +3,8 @@
  * Reemplaza los endpoints /api/export y /api/visitas/export del servidor.
  */
 
+import { hoyLocal } from './fechas.js'
+
 let _ExcelJSCache = null
 const getExcelJS = async () => {
   if (!_ExcelJSCache) {
@@ -37,7 +39,7 @@ export async function exportarExcel({ tipo, hoja = 'Datos', columnas = [], filas
     to: { row: Math.max(2, filas.length + 1), column: columnas.length },
   }
 
-  const fecha = new Date().toISOString().slice(0, 10)
+  const fecha = hoyLocal()
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const name = `${fecha}_${String(tipo || 'export').replace(/[^a-zA-Z0-9_-]/g, '_')}_${stamp}.xlsx`
 
@@ -320,7 +322,7 @@ export async function buildVisitasBlob({ visitas, encabezado = {}, periodo = 'di
     }
   }
 
-  const now = new Date().toISOString().slice(0, 10)
+  const now = hoyLocal()
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const nombre = `${now}_visitas_${periodo}_${fecha || 'todas'}_${stamp}.xlsx`
 
@@ -837,7 +839,7 @@ export async function exportarDashboard({
   ws3.getColumn(9).width = 30
   ws3.getColumn(10).width = 26
 
-  const fecha = new Date().toISOString().slice(0, 10)
+  const fecha = hoyLocal()
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
   const nombre = `${fecha}_dashboard_${stamp}.xlsx`
 

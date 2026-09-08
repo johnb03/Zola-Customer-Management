@@ -17,6 +17,7 @@ import { exportarExcel as exportExcel, buildVisitasBlob, detectarPlantillaDeterm
 import { extractText } from './utils/extractText.js'
 import { generarDocxBlob } from './utils/generarDocx.js'
 import { normalizarMonto } from './utils/dinero.js'
+import { hoyLocal } from './utils/fechas.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -247,7 +248,7 @@ export const subirDatos = async (tipo, file) => {
           Telefono: r.Telefono || r.telefono1 || r.telefono || '',
           Email: r.Email || r.email || '',
           Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
-          Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
+          Fecha_Registro: r.Fecha_Registro || hoyLocal(),
           Notas: r.Notas || r.notas || '',
           Tipo_Negocio: r.Tipo_Negocio || r.tipone || r.tipo_negocio || '',
           Direccion: r.Direccion || r.direccioncompleta || r.direccion || '',
@@ -318,7 +319,7 @@ export const guardarReporte = async (nombre, contenido) => {
     .trim()
   if (!base) throw new Error('Nombre de reporte inválido')
 
-  const fecha = new Date().toISOString().slice(0, 10)
+  const fecha = hoyLocal()
   const mdName = `${fecha}_${base}.md`
   const docxName = `${fecha}_${base}.docx`
 
@@ -569,7 +570,7 @@ export const crearCliente = async (cliente) => {
     ID_Cliente: id,
     Origen: 'manual',
     Etapa_Embudo: cliente.Etapa_Embudo || 'Cliente activo',
-    Fecha_Registro: new Date().toISOString().slice(0, 10),
+    Fecha_Registro: hoyLocal(),
     ...cliente,
   }
   await db.clientes.save(record)
@@ -591,7 +592,7 @@ export const cobrarCliente = async (id, etapaFinal = 'Cobrado') => {
 
   // Registrar el cobro en el store de cobros (para Dashboard "Dinero cobrado")
   const idCobro = await db.nextId('cobros', 'cobro-')
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = hoyLocal()
   await db.cobros.save({
     ID_Cobro: idCobro,
     Fecha_Cobrado: hoy,
@@ -724,7 +725,7 @@ export const convertirEntrante = async (tipo, archivo) => {
           Telefono: r.Telefono || r.telefono1 || r.telefono || '',
           Email: r.Email || r.email || '',
           Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
-          Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
+          Fecha_Registro: r.Fecha_Registro || hoyLocal(),
           Notas: r.Notas || r.notas || '',
           Tipo_Negocio: r.Tipo_Negocio || r.tipone || r.tipo_negocio || '',
           Direccion: r.Direccion || r.direccioncompleta || r.direccion || '',
@@ -808,7 +809,7 @@ export const convertirEntrante = async (tipo, archivo) => {
           Telefono: r.Telefono || '',
           Email: r.Email || '',
           Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
-          Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
+          Fecha_Registro: r.Fecha_Registro || hoyLocal(),
           Notas: r.Notas || '',
           Tipo_Negocio: r.Tipo_Negocio || '',
           Direccion: r.Direccion || '',
@@ -865,7 +866,7 @@ export const convertirEntrante = async (tipo, archivo) => {
           Telefono: r.Telefono || '',
           Email: r.Email || '',
           Etapa_Embudo: r.Etapa_Embudo || 'Cliente activo',
-          Fecha_Registro: r.Fecha_Registro || new Date().toISOString().slice(0, 10),
+          Fecha_Registro: r.Fecha_Registro || hoyLocal(),
           Notas: r.Notas || '',
           Tipo_Negocio: r.Tipo_Negocio || '',
           Direccion: r.Direccion || '',

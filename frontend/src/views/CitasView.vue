@@ -4,6 +4,7 @@ import { getCitas, crearCita, actualizarCita, eliminarCita, getClientes, actuali
 import CitaPopup from '../components/CitaPopup.vue'
 import { alerta } from '../composables/useAlert.js'
 import { formatearMonto, normalizarMonto } from '../utils/dinero.js'
+import { hoyLocal } from '../utils/fechas.js'
 
 const citas = ref([])
 const clientes = ref([])
@@ -83,7 +84,7 @@ const citasPorDia = computed(() => {
 
 const cobrosPorDia = computed(() => {
   const map = {}
-  const hoyStr = new Date().toISOString().slice(0, 10)
+  const hoyStr = hoyLocal()
   for (const cl of clientes.value) {
     const f = cl.Fecha_Cobro
     if (!f) continue
@@ -173,7 +174,7 @@ const visitasDelDia = computed(() => {
 
 const esHoy = (fecha) => {
   if (!fecha) return false
-  const h = hoy.toISOString().slice(0, 10)
+  const h = hoyLocal()
   return fecha === h
 }
 
@@ -200,7 +201,7 @@ const mesSiguiente = () => {
 const irHoy = () => {
   anioActual.value = hoy.getFullYear()
   mesActual.value = hoy.getMonth()
-  diaSeleccionado.value = hoy.toISOString().slice(0, 10)
+  diaSeleccionado.value = hoyLocal()
 }
 
 const seleccionarDia = (dia) => {
@@ -220,7 +221,7 @@ const estadoTone = (estado) => {
 const toggleForm = () => {
   mostrandoForm.value = !mostrandoForm.value
   if (mostrandoForm.value) {
-    form.fecha = diaSeleccionado.value || hoy.toISOString().slice(0, 10)
+    form.fecha = diaSeleccionado.value || hoyLocal()
     form.hora = ''
     form.idCliente = ''
     form.establecimiento = ''

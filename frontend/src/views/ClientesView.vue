@@ -13,6 +13,7 @@ import { dataVersion, notifyDataChanged } from "../store.js";
 import { confirmar } from "../composables/useConfirm.js";
 import { alerta } from "../composables/useAlert.js";
 import { formatearMonto, normalizarMonto } from "../utils/dinero.js";
+import { hoyLocal } from "../utils/fechas.js";
 import ClienteFormModal from "../components/ClienteFormModal.vue";
 
 /* ── State ── */
@@ -28,7 +29,7 @@ const cobroForm = reactive({ Fecha_Cobro: "", Monto: "" });
 const editandoCita = ref(false);
 const guardandoCita = ref(false);
 const citaForm = reactive({
-  Fecha: new Date().toISOString().slice(0, 10),
+  Fecha: hoyLocal(),
   Hora: "",
   Notas: "",
 });
@@ -295,7 +296,7 @@ const ultimoReporteFecha = computed(() => {
 /* ── Editar cobro ── */
 const abrirEditarCobro = () => {
   cobroForm.Fecha_Cobro =
-    selected.value?.Fecha_Cobro || new Date().toISOString().slice(0, 10);
+    selected.value?.Fecha_Cobro || hoyLocal();
   cobroForm.Monto = selected.value?.Monto != null ? String(selected.value.Monto) : "";
   editandoCobro.value = true;
 };
@@ -481,7 +482,7 @@ const marcarAlDia = async () => {
 
 /* ── Crear cita desde la ficha ── */
 const abrirCrearCita = () => {
-  citaForm.Fecha = new Date().toISOString().slice(0, 10);
+  citaForm.Fecha = hoyLocal();
   citaForm.Hora = "";
   citaForm.Notas = "";
   editandoCita.value = true;
